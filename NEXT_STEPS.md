@@ -27,17 +27,37 @@ wrappers in `scripts/`).
 - Full suite green under `ENVRELAY_REQUIRE_ORACLE=1` (195 passed, 0 skipped at
   ENVRELAY_SCALE=40). tox py315 green. Grep evidence clean.
 
-## Remaining
+## Complete
 
-1. Integrate the fresh-review subagent's findings (it may add differential
-   tests under `tests/differential/`).
-2. Final evidence run at high `ENVRELAY_SCALE` to hit the thresholds:
-   - readers: `ENVRELAY_SCALE=1000` (→ 20,000 docs through readers);
-   - editing: `ENVRELAY_SCALE>=300` (→ 5,000+ sequences);
-   - CLI generated: `ENVRELAY_SCALE=1000` (→ 1,000 docs/mode × 3 modes);
-   - find: fixed 540 layouts.
-   Then capture the full `pytest -rs -p no:warnings` run (zero skips), tox,
-   docs build, and grep evidence for the final report.
+All "Done means" items are met. Evidence (oracle Python 3.15.2, click 8.5.0,
+bytecode magic 520e0d0a):
+
+- Full suite, `ENVRELAY_REQUIRE_ORACLE=1 ... -rs -p no:warnings`:
+  391 passed, 0 skipped.
+- ≥20,000 docs through readers in-process: `test_dotenv_values_all_modes` at
+  `max_examples=20000` — passed.
+- ≥1,000 docs through the CLI in each of 3 run modes:
+  `test_cli_list_generated` (subprocess/clirunner/pty) at `max_examples=1000`
+  each — 3 passed.
+- ≥5,000 editing sequences: `test_edit_sequences` at `max_examples=5100` — passed.
+- ≥500 find_dotenv layouts: `test_find_dotenv_matrix` — 540 layouts × run modes.
+- API conformance 100%; tox py315 green; docs `mkdocs build --strict` clean;
+  grep evidence clean (no dotenv import in the library, none in requirements or
+  pip freeze).
+- Independent review integrated; the one mismatch it found is fixed.
+
+Per-channel differential result: zero mismatches on every channel (1–10).
+
+### Re-running the evidence
+
+```bash
+ENVRELAY_REQUIRE_ORACLE=1 .venv/bin/python -m pytest -rs -p no:warnings            # full, 0 skipped
+ENVRELAY_REQUIRE_ORACLE=1 ENVRELAY_SCALE=1000 .venv/bin/python -m pytest \
+    tests/differential/test_readers.py::test_dotenv_values_all_modes \
+    tests/differential/test_cli.py::test_cli_list_generated -p no:warnings
+ENVRELAY_REQUIRE_ORACLE=1 ENVRELAY_SCALE=850 .venv/bin/python -m pytest \
+    tests/differential/test_editing.py -p no:warnings
+```
 
 ## Watch list / notes
 
