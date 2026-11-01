@@ -105,6 +105,24 @@ def load_dotenv(
             "PYTHON_DOTENV_DISABLED environment variable"
         )
         return False
+    return load_into_environ(
+        dotenv_path, stream, verbose, override, interpolate, encoding
+    )
+
+
+def load_into_environ(
+    dotenv_path=None,
+    stream=None,
+    verbose=False,
+    override=False,
+    interpolate=True,
+    encoding="utf-8",
+):
+    """Read a source and apply it to ``os.environ`` (no disabled-flag check).
+
+    Shared by ``load_dotenv`` and the command line's ``run``, which ignores
+    ``PYTHON_DOTENV_DISABLED``.
+    """
     if not dotenv_path and stream is None:
         dotenv_path = find_dotenv()
     collected = _collect(dotenv_path, stream, verbose, encoding)

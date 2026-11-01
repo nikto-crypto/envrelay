@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "envrelay"
+description = "Read, load, and edit .env files -- a small, dependency-free library and CLI."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Nick Serapiglia" }]
+keywords = ["environment", "dotenv", "configuration", "env", "12factor"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dynamic = ["version"]
+dependencies = []
+
+[project.optional-dependencies]
+cli = ["click>=8.0,<9.0"]
+
+[project.scripts]
+envrelay = "envrelay.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/nserapiglia/envrelay"
+Documentation = "https://github.com/nserapiglia/envrelay"
+Source = "https://github.com/nserapiglia/envrelay"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+envrelay = ["py.typed"]
+
+[tool.setuptools.dynamic]
+version = { attr = "envrelay._version.VERSION" }

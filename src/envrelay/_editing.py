@@ -50,7 +50,10 @@ def _log_parse_warnings(error_lines) -> None:
 
 
 def _read_existing(path: str, encoding: Optional[str]) -> Optional[str]:
-    if not os.path.isfile(path):
+    # A path that exists is opened directly, so a directory raises
+    # IsADirectoryError (as the reference does) rather than being treated as
+    # empty. A missing path means "start from nothing".
+    if not os.path.exists(path):
         return None
     with open(path, encoding=encoding) as handle:
         return normalize_newlines(handle.read())
