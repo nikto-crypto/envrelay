@@ -77,8 +77,25 @@ def _compare(initial, args, mode, invocation="module", columns=80, input_text=No
 # --- -e boolean spellings ----------------------------------------------------
 
 _E_VALUES = [
-    "1", "0", "true", "false", "t", "f", "yes", "no", "y", "n",
-    "on", "off", "TRUE", "False", "Yes", "OFF", "2", "nope", "",
+    "1",
+    "0",
+    "true",
+    "false",
+    "t",
+    "f",
+    "yes",
+    "no",
+    "y",
+    "n",
+    "on",
+    "off",
+    "TRUE",
+    "False",
+    "Yes",
+    "OFF",
+    "2",
+    "nope",
+    "",
 ]
 
 
@@ -91,7 +108,11 @@ def test_cli_export_spellings(mode, value):
             b"A=1\n", ["-e", value, "set", "G", "1"], mode, invocation
         )
         assert ok, "-e %r/%s/%s: oracle=%r mine=%r" % (
-            value, mode, invocation, results["oracle"], results["mine"],
+            value,
+            mode,
+            invocation,
+            results["oracle"],
+            results["mine"],
         )
 
 
@@ -108,7 +129,11 @@ def test_cli_format_casing(mode, fmt):
     for invocation in invocations:
         ok, results = _compare(_ENV, ["list", "--format=%s" % fmt], mode, invocation)
         assert ok, "--format=%s/%s/%s: oracle=%r mine=%r" % (
-            fmt, mode, invocation, results["oracle"], results["mine"],
+            fmt,
+            mode,
+            invocation,
+            results["oracle"],
+            results["mine"],
         )
 
 
@@ -122,7 +147,10 @@ def test_cli_run_double_dash(mode):
             b"GREETING=hi\n", ["run", "--", "printenv", "GREETING"], mode, invocation
         )
         assert ok, "run -- /%s/%s: oracle=%r mine=%r" % (
-            mode, invocation, results["oracle"], results["mine"],
+            mode,
+            invocation,
+            results["oracle"],
+            results["mine"],
         )
 
 
@@ -134,7 +162,10 @@ def test_cli_run_stdin_passthrough(mode):
             b"A=1\n", ["run", "cat"], mode, invocation, input_text="piped-in-data\n"
         )
         assert ok, "run cat stdin/%s/%s: oracle=%r mine=%r" % (
-            mode, invocation, results["oracle"], results["mine"],
+            mode,
+            invocation,
+            results["oracle"],
+            results["mine"],
         )
 
 
@@ -148,11 +179,13 @@ def test_cli_run_stdin_passthrough(mode):
 def test_cli_dash_file_with_stdin(mode, args):
     invocations = ["module"] if mode == "clirunner" else ["module", "console"]
     for invocation in invocations:
-        ok, results = _compare(
-            None, args, mode, invocation, input_text="A=1\nB=two\n"
-        )
+        ok, results = _compare(None, args, mode, invocation, input_text="A=1\nB=two\n")
         assert ok, "%s/%s/%s: oracle=%r mine=%r" % (
-            args, mode, invocation, results["oracle"], results["mine"],
+            args,
+            mode,
+            invocation,
+            results["oracle"],
+            results["mine"],
         )
 
 
@@ -166,13 +199,15 @@ _UNDECODABLE = [
 
 
 @pytest.mark.parametrize("mode", ["subprocess", "clirunner", "pty"])
-@pytest.mark.parametrize(
-    "initial", _UNDECODABLE, ids=[repr(i) for i in _UNDECODABLE]
-)
+@pytest.mark.parametrize("initial", _UNDECODABLE, ids=[repr(i) for i in _UNDECODABLE])
 def test_cli_list_undecodable(mode, initial):
     invocations = ["module"] if mode == "clirunner" else ["module", "console"]
     for invocation in invocations:
         ok, results = _compare(initial, ["list"], mode, invocation)
         assert ok, "undecodable %r/%s/%s: oracle=%r mine=%r" % (
-            initial, mode, invocation, results["oracle"], results["mine"],
+            initial,
+            mode,
+            invocation,
+            results["oracle"],
+            results["mine"],
         )

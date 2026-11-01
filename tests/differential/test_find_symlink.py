@@ -112,8 +112,11 @@ def test_find_dotenv_symlinked_dir(env_location, via, usecwd):
     try:
         script = alias_script if via == "alias" else real_script
         data = _run(script, base, [".env", usecwd])
-        assert data["oracle"] == data["mine"], (
-            "env=%s via=%s usecwd=%s: %r" % (env_location, via, usecwd, data)
+        assert data["oracle"] == data["mine"], "env=%s via=%s usecwd=%s: %r" % (
+            env_location,
+            via,
+            usecwd,
+            data,
         )
     finally:
         shutil.rmtree(base)

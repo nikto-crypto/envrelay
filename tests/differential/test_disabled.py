@@ -10,7 +10,6 @@ parsed result for the ignorers; and stdout/stderr/exit/env for the CLI and magic
 
 from __future__ import annotations
 
-import io
 import json
 import os
 import shutil
@@ -53,9 +52,11 @@ def test_load_dotenv_disabled_flag(value):
                 verbose=verbose,
                 base_env={"PYTHON_DOTENV_DISABLED": value},
             )
-            assert ok, (
-                "load_dotenv disabled=%r override=%s verbose=%s: %r"
-                % (value, override, verbose, detail)
+            assert ok, "load_dotenv disabled=%r override=%s verbose=%s: %r" % (
+                value,
+                override,
+                verbose,
+                detail,
             )
 
 

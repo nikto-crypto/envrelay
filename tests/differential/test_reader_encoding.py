@@ -61,13 +61,13 @@ CASES = [
     ("utf16 as utf8", "A=café\n".encode("utf-16"), "utf-8"),
     ("cp1252 match", "A=“quoted”\n".encode("cp1252"), "cp1252"),
     ("cp1252 as latin1", "A=“quoted”\n".encode("cp1252"), "latin-1"),
-    ("utf8 bom as utf8", "﻿A=1\n".encode("utf-8"), "utf-8"),
-    ("utf8 bom as utf8-sig", "﻿A=1\n".encode("utf-8"), "utf-8-sig"),
+    ("utf8 bom as utf8", "﻿A=1\n".encode(), "utf-8"),
+    ("utf8 bom as utf8-sig", "﻿A=1\n".encode(), "utf-8-sig"),
     ("utf16le interp", "A=1\nB=${A}\n".encode("utf-16-le"), "utf-16-le"),
     ("raw highbytes as utf8", b"A=1\nB=\xff\xfe\nC=3\n", "utf-8"),
     ("raw highbytes as latin1", b"A=1\nB=\xff\xfe\nC=3\n", "latin-1"),
     ("ascii strict", b"A=1\nB=xy\n", "ascii"),
-    ("nonascii as ascii", "A=é\n".encode("utf-8"), "ascii"),
+    ("nonascii as ascii", "A=é\n".encode(), "ascii"),
 ]
 
 
@@ -100,9 +100,7 @@ def test_load_dotenv_encoding(oracle, label, raw, encoding):
         saved = dict(os.environ)
         for k in probe:
             os.environ.pop(k, None)
-        outcome = _capture(
-            cap, lambda m=module: m.load_dotenv(path, encoding=encoding)
-        )
+        outcome = _capture(cap, lambda m=module: m.load_dotenv(path, encoding=encoding))
         env = {k: os.environ.get(k) for k in probe}
         os.environ.clear()
         os.environ.update(saved)

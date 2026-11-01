@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import os
 import shutil
-import stat
 import tempfile
 
 import diff_helpers
@@ -76,7 +75,9 @@ _NO_EQ_INITIALS = [
 ]
 
 
-@pytest.mark.parametrize("initial", _NO_EQ_INITIALS, ids=[repr(i) for i in _NO_EQ_INITIALS])
+@pytest.mark.parametrize(
+    "initial", _NO_EQ_INITIALS, ids=[repr(i) for i in _NO_EQ_INITIALS]
+)
 def test_get_key_on_valueless_key(initial):
     ok, summaries = diff_helpers.compare_edit_sequence(initial, [("get_key", "A")])
     assert ok, "get_key none initial=%r: mine=%r ora=%r" % (
@@ -86,7 +87,9 @@ def test_get_key_on_valueless_key(initial):
     )
 
 
-@pytest.mark.parametrize("initial", _NO_EQ_INITIALS, ids=[repr(i) for i in _NO_EQ_INITIALS])
+@pytest.mark.parametrize(
+    "initial", _NO_EQ_INITIALS, ids=[repr(i) for i in _NO_EQ_INITIALS]
+)
 def test_unset_key_on_valueless_key(initial):
     op = ("unset_key", "A", "always", "utf-8", False)
     ok, summaries = diff_helpers.compare_edit_sequence(initial, [op])
@@ -121,9 +124,7 @@ def _edit_readonly(module, initial, op, perms):
             after_ino = st.st_ino
             with open(path, "rb") as fh:
                 after = fh.read()
-        leftovers = sorted(
-            n for n in os.listdir(d) if n != ".env"
-        )
+        leftovers = sorted(n for n in os.listdir(d) if n != ".env")
         inode_changed = before_ino != after_ino
         return (ret, after, after_mode, inode_changed, leftovers)
     finally:
