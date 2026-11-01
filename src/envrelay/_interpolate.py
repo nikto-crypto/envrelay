@@ -29,13 +29,19 @@ def expand(value: str, lookup: Callable[[str], tuple[bool, str | None]]) -> str:
 
     def repl(match: re.Match) -> str:
         inner = match.group(1)
-        sep = inner.find(":-")
-        if sep >= 0:
-            name = inner[:sep]
-            default = inner[sep + 2 :]
-        else:
+        # Only two forms expand: ${name} (no colon) and ${name:-default} (the
+        # first colon immediately followed by "-"). Any other colon form -- :?,
+        # :+, :=, ::, a bare trailing ":", or a colon elsewhere in the braces --
+        # is left as literal text.
+        colon = inner.find(":")
+        if colon == -1:
             name = inner
             default = None
+        elif inner[colon : colon + 2] == ":-":
+            name = inner[:colon]
+            default = inner[colon + 2 :]
+        else:
+            return match.group(0)
         found, resolved = lookup(name)
         if found:
             return resolved if resolved is not None else ""

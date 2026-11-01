@@ -46,7 +46,19 @@ bytecode magic 520e0d0a):
   pip freeze).
 - Independent review integrated; the one mismatch it found is fixed.
 
-Per-channel differential result: zero mismatches on every channel (1–10).
+Per-channel differential result: zero mismatches on every channel (1–10) over
+the covered input space (grammar-generated plus hand-written). This is strong
+evidence, not a proof over all inputs — see Fix round 1 below.
+
+## Fix round 1 (external evaluation)
+
+An independent evaluation on 1,250 unseen `.env` files found five divergences;
+all were confirmed against the oracle, generalized, covered, and fixed (see
+PROVENANCE.md / CHANGELOG.md): blank lines above an edited key; non-`:-` colon
+forms in `${...}`; `run` option/`--help` passthrough; `find_dotenv` interactive
+detection (`sys.ps1`/`sys.ps2`/tracer); and `None` CliRunner `--format`. Harness
+classes were added for each, and realistic `.env.example` templates were added.
+Full suite after the round: 435 passed, 0 skipped (scale 25).
 
 ### Re-running the evidence
 

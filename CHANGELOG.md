@@ -6,6 +6,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed (Fix round 1 — from an external evaluation)
+
+An independent evaluation on 1,250 unseen `.env` files surfaced five behavioral
+divergences from python-dotenv 1.2.4; all are now matched, with the whole input
+class covered by the differential suite:
+
+- `set_key`/`unset_key` (and CLI `set`/`unset`) now remove blank /
+  whitespace-only lines directly above the edited key (comments break the run).
+- `${...}` expansion is limited to `${name}` and `${name:-default}`; every other
+  colon form (`:?`, `:+`, `:=`, `::`, bare `:`, …) stays literal.
+- `run` passes every token after the command name (including `--help`) to the
+  command; `run --help` with no command still shows run's help.
+- `find_dotenv` searches from the working directory when `sys.ps1`/`sys.ps2` is
+  set, a tracer is active, the program is frozen, or `__main__` lacks `__file__`.
+- `list --format <unknown>` (e.g. `None` via CliRunner) falls back to the simple
+  format.
+
 ### Added
 
 - First implementation of `envrelay`: a dependency-free library for reading,

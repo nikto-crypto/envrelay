@@ -89,6 +89,30 @@ The review surfaced one real mismatch (set_key encoding-error byte position on a
 non-empty file), which was then fixed in `src/envrelay/_editing.py` (per-piece
 writing); the test now passes.
 
+## Added by Fix round 1 (external evaluation)
+
+New input classes now covered (see PROVENANCE.md / CHANGELOG.md):
+
+- **Blank/whitespace lines directly above an edited key** (channel 4): editing
+  scenarios now start from grammar-generated documents (blank lines,
+  whitespace-only lines, comments, bare keys in every position) and run `set_key`
+  and `unset_key` on every key — `test_editing.py::test_edit_every_key_of_generated_file`
+  and `test_configs.py::test_config_per_key_edit`.
+- **Every `${...}` brace form** (channels 1–3): each shell operator (`:-`, `-`,
+  `:=`, `=`, `:?`, `?`, `:+`, `+`), colons/dashes in names and defaults, nested
+  and unbalanced braces — added to the interpolation grammar, flowing through the
+  readers and CLI.
+- **`run` option passthrough** (channel 7): `--help`, `-h`, `--version` after the
+  command, and with `--`, in all three run modes — `test_cli.py` run cases.
+- **`find_dotenv` interactive detection** (channel 5): `sys.ps1`/`sys.ps2`
+  (alone and combined with a tracer / `sys.frozen`) — `test_find.py`.
+- **`None` CliRunner argument** (channel 7): `list --format None` and other
+  None-argument cases — the CLI/misuse differential.
+- **Realistic `.env.example` templates** (channels 1–4, 7): web app,
+  self-hosting, and Docker Compose templates with comment blocks,
+  blank-line-separated sections, and commented-out keys — read by every reader,
+  listed by the CLI, and per-key edited (`test_configs.py`).
+
 ## Generated-case counts (final evidence run)
 
 See PROVENANCE.md and the README for the exact figures produced by the final

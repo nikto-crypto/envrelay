@@ -42,6 +42,30 @@ def test_config_readers(name):
 
 
 @pytest.mark.parametrize("name", CONFIGS)
+def test_config_per_key_edit(name):
+    """Run set_key and unset_key on every key of each realistic template."""
+    import io
+
+    import envrelay
+
+    initial = open(os.path.join(CONFIG_DIR, name), "rb").read()
+    text = initial.decode("utf-8")
+    keys = list(envrelay.dotenv_values(stream=io.StringIO(text)).keys())
+    for key in keys + ["ABSENT"]:
+        for op in (
+            ("set_key", key, "newvalue", "always", False, "utf-8", False),
+            ("unset_key", key, "always", "utf-8", False),
+        ):
+            ok, summaries = diff_helpers.compare_edit_sequence(initial, [op])
+            assert ok, "%s edit %r: mine=%r ora=%r" % (
+                name,
+                op,
+                summaries["mine"],
+                summaries["ora"],
+            )
+
+
+@pytest.mark.parametrize("name", CONFIGS)
 @pytest.mark.parametrize("fmt", ["simple", "json", "shell", "export"])
 def test_config_cli_list(name, fmt):
     initial = open(os.path.join(CONFIG_DIR, name), "rb").read()

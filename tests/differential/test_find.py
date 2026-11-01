@@ -27,7 +27,7 @@ _OK, _REASON = oracle_iface.availability()
 pytestmark = pytest.mark.skipif(not _OK, reason=_REASON)
 
 
-def _run(mode, cwd, base, args, settrace=False, frozen=False):
+def _run(mode, cwd, base, args, settrace=False, frozen=False, ps1=False, ps2=False):
     env = dict(os.environ)
     env["FIND_BASE"] = base
     env.pop("PYTHONPATH", None)
@@ -37,6 +37,10 @@ def _run(mode, cwd, base, args, settrace=False, frozen=False):
         prelude += "import sys\nsys.settrace(lambda *a: None)\n"
     if frozen:
         prelude += "import sys\nsys.frozen=True\n"
+    if ps1:
+        prelude += "import sys\nsys.ps1='>>> '\n"
+    if ps2:
+        prelude += "import sys\nsys.ps2='... '\n"
     if mode == "script":
         proc = subprocess.run(
             [PY, PROBE, *args], cwd=cwd, env=env, capture_output=True, text=True
@@ -113,16 +117,17 @@ def test_find_dotenv_matrix():
                                 data,
                             )
                             cases += 1
-                    # tracer + frozen variants
-                    for extra in ("tracer", "frozen"):
-                        data = _run(
-                            "module",
-                            leaf,
-                            base,
-                            [".env", "0", "0"],
-                            settrace=(extra == "tracer"),
-                            frozen=(extra == "frozen"),
-                        )
+                    # tracer / frozen / ps1 / ps2 variants, alone and combined
+                    for extra in (
+                        {"settrace": True},
+                        {"frozen": True},
+                        {"ps1": True},
+                        {"ps2": True},
+                        {"ps1": True, "ps2": True},
+                        {"ps1": True, "settrace": True},
+                        {"ps1": True, "frozen": True},
+                    ):
+                        data = _run("module", leaf, base, [".env", "0", "0"], **extra)
                         assert data["oracle"] == data["mine"], (
                             scenario,
                             depth,

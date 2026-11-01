@@ -86,6 +86,29 @@ def _atomic_write(
         raise
 
 
+def _rewrite_pieces(segments, key, replacement):
+    """Build the output pieces for editing ``key``.
+
+    Each binding of ``key`` is replaced by ``replacement`` (a rendered line), or
+    dropped when ``replacement`` is None (unset). In both cases the contiguous run
+    of blank / whitespace-only lines *directly* above that binding is also
+    removed, matching the reference (comment lines are kept and break the run).
+    Returns ``(pieces, replaced)``.
+    """
+    pieces = []
+    replaced = False
+    for seg in segments:
+        if seg.kind == "bind" and seg.key == key:
+            while pieces and pieces[-1].strip() == "":
+                pieces.pop()
+            if replacement is not None:
+                pieces.append(replacement)
+            replaced = True
+        else:
+            pieces.append(seg.text)
+    return pieces, replaced
+
+
 def set_key(
     dotenv_path,
     key_to_set,
@@ -108,14 +131,7 @@ def set_key(
     scanned = scan(content if content is not None else "")
     _log_parse_warnings(scanned.error_lines)
 
-    pieces = []
-    replaced = False
-    for seg in scanned.segments:
-        if seg.kind == "bind" and seg.key == key_to_set:
-            pieces.append(new_line)
-            replaced = True
-        else:
-            pieces.append(seg.text)
+    pieces, replaced = _rewrite_pieces(scanned.segments, key_to_set, new_line)
     if not replaced:
         joined = "".join(pieces)
         if joined and not joined.endswith("\n"):
@@ -147,17 +163,10 @@ def unset_key(
     scanned = scan(content if content is not None else "")
     _log_parse_warnings(scanned.error_lines)
 
-    present = any(
-        seg.kind == "bind" and seg.key == key_to_unset for seg in scanned.segments
-    )
     # The file is rewritten whether or not the key was present (so an absent-key
     # unset still produces a fresh file / replaces a symlink), matching the
-    # reference.
-    pieces = [
-        seg.text
-        for seg in scanned.segments
-        if not (seg.kind == "bind" and seg.key == key_to_unset)
-    ]
+    # reference. Removing a key also removes the blank lines directly above it.
+    pieces, present = _rewrite_pieces(scanned.segments, key_to_unset, None)
     _atomic_write(dotenv_path, write_path, pieces, encoding)
     if present:
         return True, key_to_unset

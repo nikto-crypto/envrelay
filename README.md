@@ -56,11 +56,16 @@ envrelay run -- mycommand     # run a command with the .env loaded
 
 `envrelay` was written from scratch to reproduce the *observable behavior* of
 python-dotenv 1.2.4, which is used only as a black-box "oracle". The test suite
-proves equivalence by running identical inputs through both and comparing every
-channel (parsing, loading, log records, file editing, file finding, the helper,
-the command line in three run modes, the IPython magic, the API surface, and API
-misuse). See [SPEC.md](SPEC.md), [PROVENANCE.md](PROVENANCE.md), and
-[COVERAGE_MATRIX.md](COVERAGE_MATRIX.md).
+runs identical inputs through both and compares every channel (parsing, loading,
+log records, file editing, file finding, the helper, the command line in three
+run modes, the IPython magic, the API surface, and API misuse). This is strong
+evidence of equivalence over a large, grammar-generated space of inputs, not a
+proof of equivalence on all possible inputs: an independent evaluation on inputs
+the suite had not seen found divergences (see the "Fix round 1" entries in
+[PROVENANCE.md](PROVENANCE.md) and [CHANGELOG.md](CHANGELOG.md)), which were then
+reproduced, generalized, covered, and fixed. See [SPEC.md](SPEC.md),
+[PROVENANCE.md](PROVENANCE.md), and [COVERAGE_MATRIX.md](COVERAGE_MATRIX.md) for
+what is covered.
 
 ### Building the oracle and running the differential suite
 

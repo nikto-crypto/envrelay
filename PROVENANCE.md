@@ -119,3 +119,43 @@ reference's position is relative to the offending rendered line, not the whole
 file). This was fixed by writing each rendered binding / preserved span
 separately in `_editing._atomic_write`; verified against the oracle (positions
 3/5 match) and the review's test now passes rather than xfailing.
+
+## Fix round 1 (external evaluation)
+
+An independent evaluation against python-dotenv 1.2.4, using 1,250 real and
+generated `.env` files the harness had never seen, found five divergences. Each
+was confirmed against the oracle, generalized by probing smaller inputs, covered
+by new harness classes, and fixed (never special-cased). Corrected claim: the
+differential suite is strong evidence over a large grammar-generated input space,
+not a proof of equivalence on all inputs — this round is the demonstration of
+that.
+
+Findings and fixes (before → after, library change):
+
+1. **Blank lines above an edited key.** `set_key`/`unset_key` (and CLI `set`/
+   `unset`) remove the contiguous run of blank / whitespace-only lines directly
+   above the rewritten/removed key (comments break the run; applies to bare keys,
+   duplicates, and top-of-file). Fix: `_editing._rewrite_pieces` pops trailing
+   whitespace-only pieces before a matching binding.
+2. **Colon forms in `${...}`.** Only `${name}` (no colon) and `${name:-default}`
+   (first colon immediately followed by `-`) expand; every other colon form
+   (`:?`, `:+`, `:=`, `::`, bare `:`, a colon elsewhere) stays literal. Fix:
+   `_interpolate.expand` keys off the first colon.
+3. **`run` passes `--help`/options to the command.** Every token after the
+   command name goes to the command (including `--help`); `run --help` with no
+   command still shows run's help. Fix: `allow_interspersed_args=False` on the
+   run command.
+4. **Interactive detection in `find_dotenv`.** `sys.ps1`/`sys.ps2`, an active
+   tracer (`sys.gettrace()`), `sys.frozen`, or a `__main__` without `__file__`
+   all make the search start from the working directory. Fix:
+   `_core._search_from_cwd`.
+5. **`None` in CliRunner arguments.** `list --format None` falls back to the
+   simple format (the oracle's `else` branch). Fix: `list` uses `else` for
+   simple, so any non-json/shell/export value prints `name=value`.
+
+Harness gaps closed: editing scenarios now also start from grammar-generated
+documents and edit every key; the interpolation grammar emits every brace form;
+`run` cases include `--help`/`-h`/`--version` after the command in all three run
+modes; `find_dotenv` run modes include `sys.ps1`/`sys.ps2` (alone and combined
+with tracer/frozen); and realistic `.env.example`-style templates (web app,
+self-hosting, Docker Compose) are read and per-key-edited.

@@ -190,7 +190,21 @@ def _ascend(start: str) -> Iterator[str]:
         current = parent
 
 
-def _running_interactively() -> bool:
+def _search_from_cwd() -> bool:
+    """Whether find_dotenv should start at the working directory.
+
+    True when explicitly requested, when frozen, when an interactive prompt is
+    active (``sys.ps1``/``sys.ps2``, set by the REPL, IPython, and emulators),
+    when a tracer is installed (a debugger or coverage), or when ``__main__`` has
+    no ``__file__`` (``-c``, an interactive session). Otherwise the search starts
+    at the caller's script directory.
+    """
+    if getattr(sys, "frozen", False):
+        return True
+    if hasattr(sys, "ps1") or hasattr(sys, "ps2"):
+        return True
+    if sys.gettrace() is not None:
+        return True
     main = sys.modules.get("__main__")
     return not hasattr(main, "__file__")
 
@@ -199,10 +213,10 @@ def find_dotenv(filename=".env", raise_error_if_not_found=False, usecwd=False):
     """Search upward for ``filename`` and return its absolute path or ``''``.
 
     The search begins at the caller's directory (walking the call stack past this
-    package), or at the working directory when ``usecwd`` is set, when the
-    program is frozen, or when running interactively.
+    package), or at the working directory when ``usecwd`` is set or
+    ``_search_from_cwd()`` applies.
     """
-    if usecwd or getattr(sys, "frozen", False) or _running_interactively():
+    if usecwd or _search_from_cwd():
         start = os.getcwd()
     else:
         frame = sys._getframe()

@@ -64,6 +64,27 @@ _INTERP = [
     "\\${A}",
     "${A:-de fault}",
     "${self}",
+    # every brace form / shell operator (only ${name} and ${name:-default}
+    # expand; all other colon forms stay literal)
+    "${A:?err}",
+    "${A:+alt}",
+    "${A:=d}",
+    "${A?e}",
+    "${A+p}",
+    "${A=d}",
+    "${A-a:b}",
+    "${a:b:-c}",
+    "${A::}",
+    "${A:}",
+    "${:-x}",
+    "${:-}",
+    "${a:-b:-c}",
+    "${A.B:-x}",
+    "${A-B-C}",
+    "${A B:-x}",
+    "${A",
+    "${{A}}",
+    "x${A:?e}y${B}",
 ]
 _CONTROL = ["a\x01b", "tab\there", "bell\x07", "x\x0cy"]
 

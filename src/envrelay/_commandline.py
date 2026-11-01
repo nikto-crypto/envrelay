@@ -81,12 +81,13 @@ def list_command(ctx, output_format):
         value = values[key]
         if value is None:
             continue
-        if output_format == "simple":
-            click.echo("%s=%s" % (key, value))
-        elif output_format == "shell":
+        if output_format == "shell":
             click.echo("%s=%s" % (key, shlex.quote(value)))
         elif output_format == "export":
             click.echo("export %s=%s" % (key, shlex.quote(value)))
+        else:
+            # "simple" and any other value (e.g. None passed via CliRunner).
+            click.echo("%s=%s" % (key, value))
 
 
 @cli.command("get")
@@ -146,7 +147,13 @@ def unset_command(ctx, key):
 
 @cli.command(
     "run",
-    context_settings={"ignore_unknown_options": True},
+    # Stop option parsing at the first token of the command, so every option
+    # after the command name (including --help) is passed to the command, while
+    # "run --help" with no command still shows run's own help.
+    context_settings={
+        "ignore_unknown_options": True,
+        "allow_interspersed_args": False,
+    },
 )
 @click.option(
     "--override/--no-override",
