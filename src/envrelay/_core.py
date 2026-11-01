@@ -236,9 +236,9 @@ def get_cli_string(path=None, action=None, key=None, value=None, quote=None):
         parts.append(action)
         if key:
             parts.append(key)
-        if value:
-            if " " in value:
-                parts.append('"%s"' % value)
-            else:
-                parts.append(value)
+            if value:
+                if " " in value:
+                    parts.append('"%s"' % value)
+                else:
+                    parts.append(value)
     return " ".join(parts).strip()

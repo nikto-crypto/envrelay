@@ -272,8 +272,11 @@ def scan(text: str) -> ScanResult:
     """Scan ``text`` into ordered segments and the reported bad-statement lines.
 
     A leading UTF-8 BOM is dropped (and not re-emitted), matching the reference.
+    (Testing the first character with ``in`` also means a bytes value -- e.g. a
+    binary stream passed by mistake -- raises the same ``TypeError`` the
+    reference raises, rather than a differently-worded one.)
     """
-    if text.startswith("﻿"):
+    if "﻿" in text[:1]:
         text = text[1:]
     cur = _Cursor(text)
     segments: list = []
