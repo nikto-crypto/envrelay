@@ -9,6 +9,7 @@ from __future__ import annotations
 import io
 import logging
 import os
+import shutil
 import tempfile
 
 import envrelay
@@ -122,6 +123,76 @@ def compare_load_dotenv(text, override, interpolate, verbose, base_env):
 
     ok = (mine_ret == ora_ret) and (mine_env == ora_env)
     return ok, (mine_ret, mine_env, ora_ret, ora_env)
+
+
+def _dir_listing(directory, normalize_tmp=True):
+    """A comparable snapshot of a directory: name -> attributes."""
+    import re as _re
+
+    out = {}
+    for name in sorted(os.listdir(directory)):
+        path = os.path.join(directory, name)
+        disp = _re.sub(r"\.tmp_[A-Za-z0-9_]+", ".tmp_<RAND>", name) if normalize_tmp else name
+        if os.path.islink(path):
+            out[disp] = ("link", os.readlink(path).replace(directory, "<DIR>"))
+        elif os.path.isdir(path):
+            out[disp] = ("dir",)
+        else:
+            mode = os.stat(path).st_mode & 0o777
+            with open(path, "rb") as fh:
+                content = fh.read()
+            out[disp] = ("file", oct(mode), content)
+    return out
+
+
+def _apply_op(module, path, op):
+    name = op[0]
+    fn = getattr(module, name)
+    return fn(path, *op[1:])
+
+
+def compare_edit_sequence(initial, ops, make_symlink=False):
+    """Compare a sequence of editing ops (return, logs, final dir state).
+
+    ``ops`` is a list of tuples like ("set_key", key, value, quote_mode, export,
+    encoding, follow_symlinks). ``initial`` is bytes for the .env file, or None
+    for no file. Paths in log messages and the inode-changed flag are normalized
+    so two separate temp dirs compare equal.
+    """
+    summaries = {}
+    for who, module, cap in (("mine", envrelay, _MINE_CAP), ("ora", dotenv(), _ORA_CAP)):
+        directory = tempfile.mkdtemp()
+        path = os.path.join(directory, ".env")
+        if make_symlink:
+            target = os.path.join(directory, "target.env")
+            with open(target, "wb") as fh:
+                fh.write(initial if initial is not None else b"")
+            os.symlink(target, path)
+        elif initial is not None:
+            with open(path, "wb") as fh:
+                fh.write(initial)
+        before_inode = os.stat(path).st_ino if os.path.exists(path) else None
+        before_is_link = os.path.islink(path)
+        results = []
+        for op in ops:
+            cap.records.clear()
+            try:
+                value = ("ok", repr(_apply_op(module, path, op)))
+            except BaseException as exc:  # noqa: BLE001
+                value = ("exc", "%s: %s" % (type(exc).__name__, exc))
+            logs = [
+                (lvl, msg.replace(directory, "<DIR>"))
+                for (lvl, msg) in cap.records
+            ]
+            results.append((value, logs))
+        after_inode = os.stat(path).st_ino if os.path.exists(path) else None
+        inode_changed = (before_inode != after_inode)
+        still_link = os.path.islink(path)
+        listing = _dir_listing(directory)
+        summaries[who] = (results, inode_changed, before_is_link, still_link, listing)
+        shutil.rmtree(directory)
+    ok = summaries["mine"] == summaries["ora"]
+    return ok, summaries
 
 
 def _interesting_keys(base_env, text):

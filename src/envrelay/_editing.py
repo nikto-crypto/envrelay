@@ -63,7 +63,9 @@ def _atomic_write(
     link_path: str, write_path: str, body: str, encoding: Optional[str]
 ) -> None:
     directory = os.path.dirname(write_path) or os.curdir
-    if os.path.exists(write_path):
+    # Keep the mode of an existing regular file; a brand-new file -- including one
+    # that replaces a symlink -- gets 0o600.
+    if os.path.exists(write_path) and not os.path.islink(write_path):
         mode = os.stat(write_path).st_mode & 0o777
     else:
         mode = 0o600
@@ -147,21 +149,23 @@ def unset_key(
     present = any(
         seg.kind == "bind" and seg.key == key_to_unset for seg in scanned.segments
     )
-    if not present:
-        logger.warning(
-            "Key %s not removed from %s - key doesn't exist.",
-            key_to_unset,
-            dotenv_path,
-        )
-        return None, key_to_unset
-
+    # The file is rewritten whether or not the key was present (so an absent-key
+    # unset still produces a fresh file / replaces a symlink), matching the
+    # reference.
     pieces = [
         seg.text
         for seg in scanned.segments
         if not (seg.kind == "bind" and seg.key == key_to_unset)
     ]
     _atomic_write(dotenv_path, write_path, "".join(pieces), encoding)
-    return True, key_to_unset
+    if present:
+        return True, key_to_unset
+    logger.warning(
+        "Key %s not removed from %s - key doesn't exist.",
+        key_to_unset,
+        dotenv_path,
+    )
+    return None, key_to_unset
 
 
 def get_key(dotenv_path, key_to_get, encoding="utf-8"):

@@ -186,6 +186,66 @@ def env_documents(draw):
     return text
 
 
+_EDIT_KEYS = ["A", "B", "C", "NOPE", "a b=c", "a_b", "café", "'q'", "K#x", "export"]
+_EDIT_VALUES = [
+    "v",
+    "a b",
+    "x#y",
+    "",
+    "é1",
+    "it's",
+    "a\\b",
+    "a\nb",
+    "${A}",
+    "123",
+    "a_b",
+]
+_QUOTE_MODES = ["always", "never", "auto"]
+_INITIALS = [
+    None,
+    b"",
+    b"A=1\n",
+    b"A=1",
+    b"A=1\nB=2\nA=3\n",
+    b"A=1\r\nB=2\r\n",
+    b"# c\nexport A=1\nB=2\n",
+    b"A='x'\nB=\"y\"\n",
+    b"x y\nA=1\n",
+]
+
+
+@st.composite
+def edit_op(draw):
+    which = draw(st.integers(min_value=0, max_value=2))
+    if which == 0:
+        return (
+            "set_key",
+            draw(st.sampled_from(_EDIT_KEYS)),
+            draw(st.sampled_from(_EDIT_VALUES)),
+            draw(st.sampled_from(_QUOTE_MODES)),
+            draw(st.booleans()),  # export
+            "utf-8",
+            draw(st.booleans()),  # follow_symlinks
+        )
+    if which == 1:
+        return ("get_key", draw(st.sampled_from(_EDIT_KEYS)))
+    return (
+        "unset_key",
+        draw(st.sampled_from(_EDIT_KEYS)),
+        draw(st.sampled_from(_QUOTE_MODES)),
+        "utf-8",
+        draw(st.booleans()),  # follow_symlinks
+    )
+
+
+@st.composite
+def edit_scenario(draw):
+    initial = draw(st.sampled_from(_INITIALS))
+    ops = draw(st.lists(edit_op(), min_size=1, max_size=4))
+    make_symlink = draw(st.integers(min_value=0, max_value=4)) == 0 and initial is not None
+    return initial, ops, make_symlink
+
+
 @st.composite
 def preexisting_env(draw):
     """A small dict of environment variables that may overlap document keys."""
