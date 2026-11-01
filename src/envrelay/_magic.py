@@ -7,8 +7,6 @@ the reference's actual output and kept in this module.
 
 from __future__ import annotations
 
-import os
-
 from ._core import find_dotenv, load_dotenv
 
 _USAGE = "%dotenv [-o] [-v] [dotenv_path]"
@@ -42,13 +40,13 @@ def load_ipython_extension(ipython):
         @argument("dotenv_path", nargs="?", type=str, default=".env")
         def dotenv(self, line):
             args = parse_argstring(self.dotenv, line)
-            path = args.dotenv_path
-            if not os.path.isfile(path):
-                try:
-                    path = find_dotenv(raise_error_if_not_found=True, usecwd=True)
-                except IOError:
-                    print("cannot find .env file")
-                    return
+            try:
+                path = find_dotenv(
+                    args.dotenv_path, raise_error_if_not_found=True, usecwd=True
+                )
+            except IOError:
+                print("cannot find .env file")
+                return
             load_dotenv(path, verbose=args.verbose, override=args.override)
 
     ipython.register_magics(_EnvRelayMagics)
