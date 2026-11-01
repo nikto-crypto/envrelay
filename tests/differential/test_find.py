@@ -15,9 +15,8 @@ import shutil
 import subprocess
 import tempfile
 
-import pytest
-
 import oracle_iface
+import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
@@ -39,12 +38,18 @@ def _run(mode, cwd, base, args, settrace=False, frozen=False):
     if frozen:
         prelude += "import sys\nsys.frozen=True\n"
     if mode == "script":
-        proc = subprocess.run([PY, PROBE, *args], cwd=cwd, env=env, capture_output=True, text=True)
+        proc = subprocess.run(
+            [PY, PROBE, *args], cwd=cwd, env=env, capture_output=True, text=True
+        )
     elif mode in ("module", "minusm"):
         modpath = os.path.join(cwd, "finder_mod.py")
         with open(modpath, "w") as fh:
             fh.write(prelude + probe_src)
-        argv = [PY, "finder_mod.py", *args] if mode == "module" else [PY, "-m", "finder_mod", *args]
+        argv = (
+            [PY, "finder_mod.py", *args]
+            if mode == "module"
+            else [PY, "-m", "finder_mod", *args]
+        )
         proc = subprocess.run(argv, cwd=cwd, env=env, capture_output=True, text=True)
     elif mode in ("minusc", "stdin"):
         code = prelude + "import runpy,sys; sys.argv=['x',%s]; runpy.run_path(%r)" % (
@@ -52,9 +57,13 @@ def _run(mode, cwd, base, args, settrace=False, frozen=False):
             PROBE,
         )
         if mode == "minusc":
-            proc = subprocess.run([PY, "-c", code], cwd=cwd, env=env, capture_output=True, text=True)
+            proc = subprocess.run(
+                [PY, "-c", code], cwd=cwd, env=env, capture_output=True, text=True
+            )
         else:
-            proc = subprocess.run([PY], input=code, cwd=cwd, env=env, capture_output=True, text=True)
+            proc = subprocess.run(
+                [PY], input=code, cwd=cwd, env=env, capture_output=True, text=True
+            )
     else:
         raise ValueError(mode)
     for ln in proc.stdout.splitlines():
@@ -96,15 +105,30 @@ def test_find_dotenv_matrix():
                             ["cfg.ini", "1", "1"],
                         ):
                             data = _run(mode, leaf, base, args)
-                            assert data["oracle"] == data["mine"], (scenario, depth, mode, args, data)
+                            assert data["oracle"] == data["mine"], (
+                                scenario,
+                                depth,
+                                mode,
+                                args,
+                                data,
+                            )
                             cases += 1
                     # tracer + frozen variants
                     for extra in ("tracer", "frozen"):
                         data = _run(
-                            "module", leaf, base, [".env", "0", "0"],
-                            settrace=(extra == "tracer"), frozen=(extra == "frozen"),
+                            "module",
+                            leaf,
+                            base,
+                            [".env", "0", "0"],
+                            settrace=(extra == "tracer"),
+                            frozen=(extra == "frozen"),
                         )
-                        assert data["oracle"] == data["mine"], (scenario, depth, extra, data)
+                        assert data["oracle"] == data["mine"], (
+                            scenario,
+                            depth,
+                            extra,
+                            data,
+                        )
                         cases += 1
                 finally:
                     shutil.rmtree(base)

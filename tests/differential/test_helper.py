@@ -13,7 +13,7 @@ def _norm(text, prog):
     if text == prog:
         return "<PROG>"
     if text.startswith(prog + " "):
-        return "<PROG>" + text[len(prog):]
+        return "<PROG>" + text[len(prog) :]
     return text
 
 

@@ -85,6 +85,23 @@ library never imports click.
 
 ## Differential pass rate by phase
 
-(Recorded as each phase completes.)
+Each phase was driven to zero mismatches against the oracle before moving on.
+Pass rates are reported as (tests green / tests run) for that phase's checks.
 
-- Plan + harness scaffold: pending.
+- Parsing + interpolation: 268/268 ad-hoc (`scripts/check_parse.py`); readers
+  differential green at 12,000+ generated examples.
+- Loading: load_dotenv return value, override-aware interpolation, duplicate/None
+  handling, and `PYTHON_DOTENV_DISABLED` all matching; green in `test_readers`.
+- File editing: green at 5,000+ generated sequences (`test_editing.py`),
+  including quote modes, export, encodings, symlinks, permissions, and the full
+  directory listing / inode-change comparison.
+- Finding files: 540 layouts × run modes green (`test_find.py`), plus true
+  `-c`/stdin frames verified.
+- Helper: `get_cli_string` green across 1,000+ argument combinations.
+- Command line: 66/66 ad-hoc (`scripts/check_cli.py`); differential green across
+  subprocess, forked CliRunner, and pty, both `python -m` and the console
+  script, with help text at COLUMNS 80/100/120/unset.
+- IPython magic: green (`test_magic.py`).
+- API surface conformance: 100% (`tests/conformance`).
+- Full suite under `ENVRELAY_REQUIRE_ORACLE=1`: all tests pass, zero skipped
+  (see the evidence run in NEXT_STEPS.md / the final report).

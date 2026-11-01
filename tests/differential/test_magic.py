@@ -13,9 +13,8 @@ import shutil
 import subprocess
 import tempfile
 
-import pytest
-
 import oracle_iface
+import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
@@ -50,15 +49,22 @@ def _run(ext, cwd):
     env.pop("PYTHONPATH", None)
     env["MAGIC_BASE"] = cwd
     proc = subprocess.run(
-        [PY, RUNNER, ext], cwd=cwd, env=env, input=json.dumps(COMMANDS),
-        capture_output=True, text=True,
+        [PY, RUNNER, ext],
+        cwd=cwd,
+        env=env,
+        input=json.dumps(COMMANDS),
+        capture_output=True,
+        text=True,
     )
     results = {}
     for line in proc.stdout.splitlines():
         if line.startswith("{"):
             data = json.loads(line)
             results[data["cmd"]] = data
-    assert results, "magic_runner (%s) produced no output: %s" % (ext, proc.stderr[-500:])
+    assert results, "magic_runner (%s) produced no output: %s" % (
+        ext,
+        proc.stderr[-500:],
+    )
     return results
 
 

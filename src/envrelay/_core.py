@@ -6,12 +6,11 @@ the standard library and the sibling parsing/interpolation modules.
 
 from __future__ import annotations
 
-import io
 import logging
 import os
 import sys
 from collections import OrderedDict
-from typing import IO, Iterator, Optional, Tuple
+from collections.abc import Iterator
 
 from . import _interpolate
 from ._parsing import normalize_newlines, parse
@@ -30,14 +29,14 @@ def _disabled() -> bool:
     return raw.lower() in _DISABLED_VALUES
 
 
-def _read_text_from_path(path: str, encoding: Optional[str]) -> str:
+def _read_text_from_path(path: str, encoding: str | None) -> str:
     with open(path, encoding=encoding) as handle:
         return normalize_newlines(handle.read())
 
 
 def _collect(
-    dotenv_path, stream, verbose: bool, encoding: Optional[str]
-) -> Optional[Tuple[list, list]]:
+    dotenv_path, stream, verbose: bool, encoding: str | None
+) -> tuple[list, list] | None:
     """Return (entries, error_lines) or None when no source could be read.
 
     A stream, when supplied, is used only if the path is not a real file; text
@@ -148,8 +147,8 @@ def _apply_to_environ(entries, override: bool, interpolate: bool) -> None:
             os.environ[key] = value
 
 
-def _resolve_for_load(entries, override: bool, interpolate: bool) -> "OrderedDict":
-    out: "OrderedDict" = OrderedDict()
+def _resolve_for_load(entries, override: bool, interpolate: bool) -> OrderedDict:
+    out: OrderedDict = OrderedDict()
     for name, value in entries:
         if value is None or not interpolate:
             out[name] = value
@@ -176,6 +175,7 @@ def _resolve_for_load(entries, override: bool, interpolate: bool) -> "OrderedDic
 
 
 # --- locating ----------------------------------------------------------------
+
 
 def _ascend(start: str) -> Iterator[str]:
     """Yield ``start`` and each parent directory up to the filesystem root."""
@@ -219,11 +219,12 @@ def find_dotenv(filename=".env", raise_error_if_not_found=False, usecwd=False):
             return candidate
 
     if raise_error_if_not_found:
-        raise IOError("File not found")
+        raise OSError("File not found")
     return ""
 
 
 # --- CLI string helper -------------------------------------------------------
+
 
 def get_cli_string(path=None, action=None, key=None, value=None, quote=None):
     """Build the command-line string equivalent to the given operation."""

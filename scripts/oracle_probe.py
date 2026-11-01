@@ -26,9 +26,9 @@ The snippet runs with these names available: ``dotenv`` (the oracle package),
 from __future__ import annotations
 
 import io
+import json
 import os
 import sys
-import json
 
 
 def oracle_dir() -> str:

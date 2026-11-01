@@ -12,9 +12,9 @@ import os
 import shutil
 import tempfile
 
-import envrelay
-
 import oracle_iface
+
+import envrelay
 
 _dotenv = None
 
@@ -71,22 +71,30 @@ def compare_dotenv_values(text, interpolate, via_file, encoding="utf-8"):
         try:
             mine = _run_capturing(
                 _MINE_CAP,
-                lambda: envrelay.dotenv_values(path, interpolate=interpolate, encoding=encoding),
+                lambda: envrelay.dotenv_values(
+                    path, interpolate=interpolate, encoding=encoding
+                ),
             )
             ora = _run_capturing(
                 _ORA_CAP,
-                lambda: dotenv().dotenv_values(path, interpolate=interpolate, encoding=encoding),
+                lambda: dotenv().dotenv_values(
+                    path, interpolate=interpolate, encoding=encoding
+                ),
             )
         finally:
             os.unlink(path)
     else:
         mine = _run_capturing(
             _MINE_CAP,
-            lambda: envrelay.dotenv_values(stream=io.StringIO(text), interpolate=interpolate),
+            lambda: envrelay.dotenv_values(
+                stream=io.StringIO(text), interpolate=interpolate
+            ),
         )
         ora = _run_capturing(
             _ORA_CAP,
-            lambda: dotenv().dotenv_values(stream=io.StringIO(text), interpolate=interpolate),
+            lambda: dotenv().dotenv_values(
+                stream=io.StringIO(text), interpolate=interpolate
+            ),
         )
     ok = mine == ora
     return ok, (mine, ora)
@@ -104,7 +112,10 @@ def compare_load_dotenv(text, override, interpolate, verbose, base_env):
     mine_ret = _run_capturing(
         _MINE_CAP,
         lambda: envrelay.load_dotenv(
-            stream=io.StringIO(text), override=override, interpolate=interpolate, verbose=verbose
+            stream=io.StringIO(text),
+            override=override,
+            interpolate=interpolate,
+            verbose=verbose,
         ),
     )
     mine_env = {k: os.environ.get(k) for k in _interesting_keys(base_env, text)}
@@ -113,7 +124,10 @@ def compare_load_dotenv(text, override, interpolate, verbose, base_env):
     ora_ret = _run_capturing(
         _ORA_CAP,
         lambda: dotenv().load_dotenv(
-            stream=io.StringIO(text), override=override, interpolate=interpolate, verbose=verbose
+            stream=io.StringIO(text),
+            override=override,
+            interpolate=interpolate,
+            verbose=verbose,
         ),
     )
     ora_env = {k: os.environ.get(k) for k in _interesting_keys(base_env, text)}
@@ -132,7 +146,11 @@ def _dir_listing(directory, normalize_tmp=True):
     out = {}
     for name in sorted(os.listdir(directory)):
         path = os.path.join(directory, name)
-        disp = _re.sub(r"\.tmp_[A-Za-z0-9_]+", ".tmp_<RAND>", name) if normalize_tmp else name
+        disp = (
+            _re.sub(r"\.tmp_[A-Za-z0-9_]+", ".tmp_<RAND>", name)
+            if normalize_tmp
+            else name
+        )
         if os.path.islink(path):
             out[disp] = ("link", os.readlink(path).replace(directory, "<DIR>"))
         elif os.path.isdir(path):
@@ -160,7 +178,10 @@ def compare_edit_sequence(initial, ops, make_symlink=False):
     so two separate temp dirs compare equal.
     """
     summaries = {}
-    for who, module, cap in (("mine", envrelay, _MINE_CAP), ("ora", dotenv(), _ORA_CAP)):
+    for who, module, cap in (
+        ("mine", envrelay, _MINE_CAP),
+        ("ora", dotenv(), _ORA_CAP),
+    ):
         directory = tempfile.mkdtemp()
         path = os.path.join(directory, ".env")
         if make_symlink:
@@ -181,12 +202,11 @@ def compare_edit_sequence(initial, ops, make_symlink=False):
             except BaseException as exc:  # noqa: BLE001
                 value = ("exc", "%s: %s" % (type(exc).__name__, exc))
             logs = [
-                (lvl, msg.replace(directory, "<DIR>"))
-                for (lvl, msg) in cap.records
+                (lvl, msg.replace(directory, "<DIR>")) for (lvl, msg) in cap.records
             ]
             results.append((value, logs))
         after_inode = os.stat(path).st_ino if os.path.exists(path) else None
-        inode_changed = (before_inode != after_inode)
+        inode_changed = before_inode != after_inode
         still_link = os.path.islink(path)
         listing = _dir_listing(directory)
         summaries[who] = (results, inode_changed, before_is_link, still_link, listing)

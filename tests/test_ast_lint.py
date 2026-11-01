@@ -16,8 +16,6 @@ from __future__ import annotations
 import ast
 import os
 
-import pytest
-
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(REPO, "src", "envrelay")
 SCAN_DIRS = [SRC, os.path.join(REPO, "scripts"), os.path.join(REPO, "tests")]
@@ -96,10 +94,16 @@ def test_no_bad_submodule_imports_and_no_inspection():
                 # forbidden submodule imports
                 if isinstance(node, ast.Import):
                     for alias in node.names:
-                        if alias.name.startswith("dotenv.") and alias.name != "dotenv.cli":
+                        if (
+                            alias.name.startswith("dotenv.")
+                            and alias.name != "dotenv.cli"
+                        ):
                             violations.append((path, "import %s" % alias.name))
                 if isinstance(node, ast.ImportFrom) and node.module:
-                    if node.module.startswith("dotenv.") and node.module != "dotenv.cli":
+                    if (
+                        node.module.startswith("dotenv.")
+                        and node.module != "dotenv.cli"
+                    ):
                         violations.append((path, "from %s import" % node.module))
                     if node.module in ("pydoc", "dis", "marshal"):
                         violations.append((path, "import %s" % node.module))

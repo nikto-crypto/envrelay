@@ -1,0 +1,15 @@
+line-length = 88
+target-version = "py310"
+
+[lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4"]
+ignore = ["E741", "C408", "UP031"]
+
+[lint.per-file-ignores]
+# Test and probe code legitimately sets sys.path before importing (E402),
+# catches BaseException to record oracle errors (BLE001), and uses %-formatting.
+"tests/**" = ["E501", "B008", "B023", "E402", "BLE001", "UP031", "F811"]
+"scripts/**" = ["E501", "B008", "B023", "E402", "BLE001", "UP031", "F401"]
+
+[lint.isort]
+known-first-party = ["envrelay"]

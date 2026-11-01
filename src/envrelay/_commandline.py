@@ -151,8 +151,7 @@ def unset_command(ctx, key):
 @click.option(
     "--override/--no-override",
     default=True,
-    help="Override variables from the environment file with those from the .env "
-    "file.",
+    help="Override variables from the environment file with those from the .env file.",
 )
 @click.argument("commandline", nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
@@ -161,7 +160,7 @@ def run_command(ctx, override, commandline):
     file = ctx.obj["FILE"]
     if not os.path.isfile(file):
         raise click.UsageError(
-            'Invalid value: Invalid value for \'-f\' "%s" does not exist.' % file
+            "Invalid value: Invalid value for '-f' \"%s\" does not exist." % file
         )
     _cliglue.load_for_run(file, override)
     if not commandline:

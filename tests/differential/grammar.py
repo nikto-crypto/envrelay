@@ -242,7 +242,9 @@ def edit_op(draw):
 def edit_scenario(draw):
     initial = draw(st.sampled_from(_INITIALS))
     ops = draw(st.lists(edit_op(), min_size=1, max_size=4))
-    make_symlink = draw(st.integers(min_value=0, max_value=4)) == 0 and initial is not None
+    make_symlink = (
+        draw(st.integers(min_value=0, max_value=4)) == 0 and initial is not None
+    )
     return initial, ops, make_symlink
 
 

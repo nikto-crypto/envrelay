@@ -15,7 +15,7 @@ def main(prog_name=None):
         import click  # noqa: F401
     except ImportError:
         sys.stderr.write(
-            'It seems python-dotenv is not installed with cli option. \n'
+            "It seems python-dotenv is not installed with cli option. \n"
             'Run pip install "python-dotenv[cli]" to fix this.'
         )
         sys.exit(1)

@@ -13,7 +13,6 @@ import logging
 import os
 import re
 import tempfile
-from typing import Optional, Tuple
 
 from ._core import dotenv_values
 from ._parsing import normalize_newlines, scan
@@ -49,7 +48,7 @@ def _log_parse_warnings(error_lines) -> None:
         )
 
 
-def _read_existing(path: str, encoding: Optional[str]) -> Optional[str]:
+def _read_existing(path: str, encoding: str | None) -> str | None:
     # A path that exists is opened directly, so a directory raises
     # IsADirectoryError (as the reference does) rather than being treated as
     # empty. A missing path means "start from nothing".
@@ -60,7 +59,7 @@ def _read_existing(path: str, encoding: Optional[str]) -> Optional[str]:
 
 
 def _atomic_write(
-    link_path: str, write_path: str, body: str, encoding: Optional[str]
+    link_path: str, write_path: str, body: str, encoding: str | None
 ) -> None:
     directory = os.path.dirname(write_path) or os.curdir
     # Keep the mode of an existing regular file; a brand-new file -- including one
@@ -136,9 +135,7 @@ def unset_key(
     absent. ``quote_mode`` is accepted but ignored.
     """
     if not os.path.exists(dotenv_path):
-        logger.warning(
-            "Can't delete from %s - it doesn't exist.", dotenv_path
-        )
+        logger.warning("Can't delete from %s - it doesn't exist.", dotenv_path)
         return None, key_to_unset
 
     write_path = os.path.realpath(dotenv_path) if follow_symlinks else dotenv_path

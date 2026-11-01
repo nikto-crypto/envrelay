@@ -14,7 +14,7 @@ _USAGE = "%dotenv [-o] [-v] [dotenv_path]"
 
 def load_ipython_extension(ipython):
     """Entry point for ``%load_ext envrelay``."""
-    from IPython.core.magic import line_magic, magics_class, Magics
+    from IPython.core.magic import Magics, line_magic, magics_class
     from IPython.core.magic_arguments import (
         argument,
         magic_arguments,
@@ -44,7 +44,7 @@ def load_ipython_extension(ipython):
                 path = find_dotenv(
                     args.dotenv_path, raise_error_if_not_found=True, usecwd=True
                 )
-            except IOError:
+            except OSError:
                 print("cannot find .env file")
                 return
             load_dotenv(path, verbose=args.verbose, override=args.override)

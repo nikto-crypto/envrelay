@@ -1,0 +1,9 @@
+# Development dependencies (the core library has none)
+click==8.5.0
+ipython
+pytest
+hypothesis
+coverage
+ruff
+pre-commit
+bump2version

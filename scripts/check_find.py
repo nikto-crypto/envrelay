@@ -1,10 +1,11 @@
 """Drive find_probe.py through many run modes and directory layouts."""
-import os
-import sys
+
 import json
+import os
 import shutil
-import tempfile
 import subprocess
+import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PY = os.path.join(HERE, ".venv", "bin", "python")
@@ -25,31 +26,52 @@ def run_probe(mode, cwd, base, args, settrace=False, frozen=False):
     if frozen:
         prelude += "import sys\nsys.frozen=True\n"
     if mode == "script":
-        proc = subprocess.run([PY, PROBE, *args], cwd=cwd, env=env,
-                              capture_output=True, text=True)
+        proc = subprocess.run(
+            [PY, PROBE, *args], cwd=cwd, env=env, capture_output=True, text=True
+        )
     elif mode == "module":
         # run as module: copy probe into cwd as a package-free module
         modpath = os.path.join(cwd, "finder_mod.py")
         with open(modpath, "w") as fh:
             fh.write(prelude + probe_src)
-        proc = subprocess.run([PY, "finder_mod.py", *args], cwd=cwd, env=env,
-                              capture_output=True, text=True)
+        proc = subprocess.run(
+            [PY, "finder_mod.py", *args],
+            cwd=cwd,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
     elif mode == "minusm":
         modpath = os.path.join(cwd, "finder_mod.py")
         with open(modpath, "w") as fh:
             fh.write(prelude + probe_src)
-        proc = subprocess.run([PY, "-m", "finder_mod", *args], cwd=cwd, env=env,
-                              capture_output=True, text=True)
+        proc = subprocess.run(
+            [PY, "-m", "finder_mod", *args],
+            cwd=cwd,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
     elif mode == "minusc":
-        code = prelude + "import runpy,sys; sys.argv=['x'," + ",".join(
-            repr(a) for a in args) + "]; runpy.run_path(%r)" % PROBE
-        proc = subprocess.run([PY, "-c", code], cwd=cwd, env=env,
-                              capture_output=True, text=True)
+        code = (
+            prelude
+            + "import runpy,sys; sys.argv=['x',"
+            + ",".join(repr(a) for a in args)
+            + "]; runpy.run_path(%r)" % PROBE
+        )
+        proc = subprocess.run(
+            [PY, "-c", code], cwd=cwd, env=env, capture_output=True, text=True
+        )
     elif mode == "stdin":
-        code = prelude + "import runpy,sys; sys.argv=['x'," + ",".join(
-            repr(a) for a in args) + "]; runpy.run_path(%r)" % PROBE
-        proc = subprocess.run([PY], cwd=cwd, env=env, input=code,
-                              capture_output=True, text=True)
+        code = (
+            prelude
+            + "import runpy,sys; sys.argv=['x',"
+            + ",".join(repr(a) for a in args)
+            + "]; runpy.run_path(%r)" % PROBE
+        )
+        proc = subprocess.run(
+            [PY], cwd=cwd, env=env, input=code, capture_output=True, text=True
+        )
     else:
         raise ValueError(mode)
     return proc
@@ -91,7 +113,9 @@ def main():
             check(f"{scenario}/raise", mode, b, base, [".env", "0", "1"])
             check(f"{scenario}/custom-name", mode, b, base, ["cfg.ini", "0", "0"])
         # tracer + frozen variants (script mode uses module file)
-        check(f"{scenario}/tracer", "module", b, base, [".env", "0", "0"], settrace=True)
+        check(
+            f"{scenario}/tracer", "module", b, base, [".env", "0", "0"], settrace=True
+        )
         check(f"{scenario}/frozen", "module", b, base, [".env", "0", "0"], frozen=True)
         shutil.rmtree(base)
     print(f"\nfind_dotenv: {results['pass']} passed, {results['fail']} failed")

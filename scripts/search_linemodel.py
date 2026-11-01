@@ -1,5 +1,6 @@
 """Search for the newline-accounting algorithm that reproduces observed
 warning line numbers. Pure local reasoning from black-box observations."""
+
 import re
 
 # (content, expected_warning_lines)
@@ -26,7 +27,7 @@ OBS = [
     ("A\r\nB\r\nz w", [3]),
     ("A=1\nB=2\r\nz w", [3]),
     ("A=1\r\nB=2\nz w", [3]),
-    ("A=\"x\r\ny\"\r\nz w", [3]),
+    ('A="x\r\ny"\r\nz w', [3]),
     ("A=1\r\n\r\nz w", [2]),
     ("A=1\r\nB=2\r\nz w\r\nD=4\r\ne f", [3, 6]),
     ("x y\r\nD=4\r\ne f", [1, 4]),
@@ -44,6 +45,7 @@ SQ = r"'(?:\\'|[^'])*'"
 DQ = r'"(?:\\"|[^"])*"'
 # A single "logical line" up to the first real newline (\n) — but double-quote
 # values may contain newlines.
+
 
 def match_binding(rest):
     """Return (consumed_len) of KEY[=VALUE] not including the line terminator,
@@ -106,7 +108,7 @@ def simulate(content, term_counts_cr, recovery_mode):
         blanks = bm.group(0)
         # but only if what's after is not immediately content on same prefix...
         line += blanks.count("\n")
-        rest = rest[bm.end():]
+        rest = rest[bm.end() :]
         if not rest:
             break
         consumed = match_binding(rest)
@@ -122,7 +124,7 @@ def simulate(content, term_counts_cr, recovery_mode):
                     line += 1
                 elif t == "\r":
                     line += 1 if term_counts_cr else 0
-                rest = rest[tm.end():]
+                rest = rest[tm.end() :]
         else:
             warnings.append(stmt_start)
             if recovery_mode == "to_nl_incl":
@@ -131,11 +133,11 @@ def simulate(content, term_counts_cr, recovery_mode):
                     rest = ""
                 else:
                     line += 1
-                    rest = rest[nl + 1:]
+                    rest = rest[nl + 1 :]
             elif recovery_mode == "dot_star":
                 # consume .* (up to \n not incl), leaving \n for next prefix
                 dm = re.match(r"[^\n]*", rest)
-                rest = rest[dm.end():]
+                rest = rest[dm.end() :]
                 # do not count line here; the \n left will be counted by next blanks
     return warnings
 

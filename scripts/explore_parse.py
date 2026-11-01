@@ -9,12 +9,14 @@ Inputs are supplied as JSON list of strings on stdin (each parsed via a
 StringIO stream unless the string starts with the marker 'FILE:' in which case
 it is written to a temp file and read as a path). interpolate flag via argv[1].
 """
+
 from __future__ import annotations
+
 import io
-import os
-import sys
 import json
 import logging
+import os
+import sys
 import tempfile
 
 base = os.environ.get("ENVRELAY_ORACLE_DIR", os.path.expanduser("~/envrelay-oracle"))
@@ -26,16 +28,18 @@ import dotenv  # noqa: E402
 
 records = []
 
+
 class Cap(logging.Handler):
     def emit(self, r):
         records.append((r.levelname, r.getMessage()))
+
 
 logger = logging.getLogger("dotenv")
 logger.setLevel(logging.DEBUG)
 logger.addHandler(Cap())
 logger.propagate = False
 
-interpolate = (len(sys.argv) > 1 and sys.argv[1] == "nointerp")
+interpolate = len(sys.argv) > 1 and sys.argv[1] == "nointerp"
 
 data = json.load(sys.stdin)
 for s in data:
@@ -49,7 +53,9 @@ for s in data:
             res = dotenv.dotenv_values(path, interpolate=not interpolate)
             os.unlink(path)
         else:
-            res = dotenv.dotenv_values(stream=io.StringIO(s), interpolate=not interpolate)
+            res = dotenv.dotenv_values(
+                stream=io.StringIO(s), interpolate=not interpolate
+            )
         out = repr(res)
     except BaseException as e:
         out = f"!! {type(e).__name__}: {e}"

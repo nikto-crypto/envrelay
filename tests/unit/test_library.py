@@ -9,7 +9,6 @@ from __future__ import annotations
 import io
 import logging
 import os
-import tempfile
 from collections import OrderedDict
 
 import pytest
@@ -22,6 +21,7 @@ def dv(text, **kw):
 
 
 # --- parsing -----------------------------------------------------------------
+
 
 def test_basic_pairs():
     assert dv("A=1\nB=two") == OrderedDict([("A", "1"), ("B", "two")])
@@ -98,6 +98,7 @@ def test_stream_keeps_crlf_but_file_folds(tmp_path):
 
 # --- interpolation -----------------------------------------------------------
 
+
 def test_interpolation_basic_and_default():
     assert dv("A=${B}\nB=2") == OrderedDict([("A", ""), ("B", "2")])
     assert dv("A=${MISSING:-def}") == OrderedDict([("A", "def")])
@@ -105,12 +106,16 @@ def test_interpolation_basic_and_default():
 
 
 def test_interpolation_off_keeps_literal():
-    assert dv("A=${B}\nB=2", interpolate=False) == OrderedDict([("A", "${B}"), ("B", "2")])
+    assert dv("A=${B}\nB=2", interpolate=False) == OrderedDict(
+        [("A", "${B}"), ("B", "2")]
+    )
 
 
 def test_interpolation_reads_environment(monkeypatch):
     monkeypatch.setenv("X", "5")
-    assert dv("A=${X}\nX=1\nB=${X}") == OrderedDict([("A", "5"), ("X", "1"), ("B", "1")])
+    assert dv("A=${X}\nX=1\nB=${X}") == OrderedDict(
+        [("A", "5"), ("X", "1"), ("B", "1")]
+    )
 
 
 def test_dash_is_part_of_name_not_default():
@@ -118,6 +123,7 @@ def test_dash_is_part_of_name_not_default():
 
 
 # --- loading -----------------------------------------------------------------
+
 
 def test_load_sets_environ_and_returns_true(monkeypatch):
     monkeypatch.delenv("A", raising=False)
@@ -149,6 +155,7 @@ def test_disabled_flag_non_triggering_value(monkeypatch):
 
 
 # --- editing -----------------------------------------------------------------
+
 
 def test_set_key_quote_modes(tmp_path):
     p = str(tmp_path / ".env")
@@ -204,6 +211,7 @@ def test_set_key_rewrites_crlf_as_lf(tmp_path):
 
 # --- find_dotenv -------------------------------------------------------------
 
+
 def test_find_dotenv_walks_up(tmp_path, monkeypatch):
     (tmp_path / ".env").write_text("X=1\n")
     sub = tmp_path / "a" / "b"
@@ -221,14 +229,19 @@ def test_find_dotenv_not_found(tmp_path, monkeypatch):
 
 # --- helper ------------------------------------------------------------------
 
+
 def test_get_cli_string():
     assert envrelay.get_cli_string() == "dotenv"
     assert envrelay.get_cli_string("p", "get", "K") == "dotenv -f p get K"
     assert envrelay.get_cli_string("p", "set", "K", "v v") == 'dotenv -f p set K "v v"'
-    assert envrelay.get_cli_string("p", "set", "K", "v", quote="never") == "dotenv -q never -f p set K v"
+    assert (
+        envrelay.get_cli_string("p", "set", "K", "v", quote="never")
+        == "dotenv -q never -f p set K v"
+    )
 
 
 # --- surface -----------------------------------------------------------------
+
 
 def test_all_and_no_version():
     assert len(envrelay.__all__) == 8

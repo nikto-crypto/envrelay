@@ -11,12 +11,11 @@ import os
 import shutil
 import tempfile
 
-import pytest
-
 import cli_modes
 import diff_helpers
 import normalizer
 import oracle_iface
+import pytest
 
 CONFIG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs")
 CONFIGS = sorted(f for f in os.listdir(CONFIG_DIR) if f.endswith(".env"))
@@ -31,7 +30,12 @@ def test_config_readers(name):
     for interpolate in (True, False):
         for via_file in (False, True):
             ok, detail = diff_helpers.compare_dotenv_values(text, interpolate, via_file)
-            assert ok, "%s interp=%s file=%s: %r" % (name, interpolate, via_file, detail)
+            assert ok, "%s interp=%s file=%s: %r" % (
+                name,
+                interpolate,
+                via_file,
+                detail,
+            )
     for override in (False, True):
         ok, detail = diff_helpers.compare_load_dotenv(text, override, True, True, {})
         assert ok, "%s load override=%s: %r" % (name, override, detail)
@@ -58,6 +62,15 @@ def test_config_cli_list(name, fmt):
                 code, out, err = cli_modes.run_clirunner(which, args, d, 80)
                 prog = "cli"
             ver = "1.2.4" if which == "oracle" else "0.1.0"
-            results[which] = (code, normalizer.normalize(out, prog, ver, d), normalizer.normalize(err, prog, ver, d))
+            results[which] = (
+                code,
+                normalizer.normalize(out, prog, ver, d),
+                normalizer.normalize(err, prog, ver, d),
+            )
             shutil.rmtree(d)
-        assert results["oracle"] == results["mine"], "%s %s %s: %r" % (name, fmt, mode, results)
+        assert results["oracle"] == results["mine"], "%s %s %s: %r" % (
+            name,
+            fmt,
+            mode,
+            results,
+        )

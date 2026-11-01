@@ -5,16 +5,17 @@ are invoked with the same cwd and COLUMNS; the oracle via scripts/oracle_cli
 (which reduces tracebacks), envrelay directly (tracebacks reduced the same way).
 Program name and version number are normalized before comparison.
 """
+
 import os
 import re
-import sys
 import shutil
-import tempfile
 import subprocess
+import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(HERE, "scripts"))
-from oracle_cli import run_oracle, reduce_traceback  # noqa: E402
+from oracle_cli import reduce_traceback, run_oracle  # noqa: E402
 
 PYEXE = os.path.join(HERE, ".venv", "bin", "python")
 ENVRELAY_SCRIPT = os.path.join(HERE, ".venv", "bin", "envrelay")

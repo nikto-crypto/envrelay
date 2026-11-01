@@ -10,10 +10,9 @@ from __future__ import annotations
 
 import os
 
-from hypothesis import given, settings, HealthCheck
-
 import diff_helpers
 import grammar
+from hypothesis import HealthCheck, given, settings
 
 _SCALE = int(os.environ.get("ENVRELAY_SCALE", "300"))
 

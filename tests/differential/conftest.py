@@ -83,9 +83,9 @@ def _no_env_above(path):
 def case_dir(tmp_path):
     """A per-case directory, verified to have no ``.env`` in any parent."""
     d = tmp_path
-    assert _no_env_above(
-        os.path.dirname(str(d))
-    ), "a .env exists above the temp root; find_dotenv would walk into it"
+    assert _no_env_above(os.path.dirname(str(d))), (
+        "a .env exists above the temp root; find_dotenv would walk into it"
+    )
     return str(d)
 
 

@@ -60,7 +60,11 @@ def test_misuse_readers(oracle):
         ]
         for label, make in cases:
             mine, ora = _both(oracle, make)
-            assert _norm(mine, d) == _norm(ora, d), "%s: mine=%r ora=%r" % (label, mine, ora)
+            assert _norm(mine, d) == _norm(ora, d), "%s: mine=%r ora=%r" % (
+                label,
+                mine,
+                ora,
+            )
     finally:
         shutil.rmtree(d)
 
@@ -77,7 +81,11 @@ def test_misuse_editing(oracle):
         # Each needs its own temp file; run per module inside the lambda via _set.
         mine = _outcome(lambda: make(envrelay))
         ora = _outcome(lambda: make(oracle))
-        assert _strip_paths(mine) == _strip_paths(ora), "%s: mine=%r ora=%r" % (label, mine, ora)
+        assert _strip_paths(mine) == _strip_paths(ora), "%s: mine=%r ora=%r" % (
+            label,
+            mine,
+            ora,
+        )
 
 
 def _set(module, key, value, **kw):

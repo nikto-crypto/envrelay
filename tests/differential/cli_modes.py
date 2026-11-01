@@ -21,7 +21,6 @@ import os
 import pty
 import select
 import subprocess
-import sys
 
 import oracle_iface
 
@@ -61,10 +60,15 @@ def _base_env(columns, extra=None):
 
 # --- subprocess --------------------------------------------------------------
 
-def run_subprocess(which, invocation, args, cwd, columns, input_text=None, extra_env=None):
+
+def run_subprocess(
+    which, invocation, args, cwd, columns, input_text=None, extra_env=None
+):
     env = _base_env(columns, extra_env)
     if which == "oracle":
-        env["PYTHONPATH"] = os.pathsep.join([ORACLE_DIR, os.path.join(ORACLE_DIR, "deps")])
+        env["PYTHONPATH"] = os.pathsep.join(
+            [ORACLE_DIR, os.path.join(ORACLE_DIR, "deps")]
+        )
         if invocation == "module":
             argv = [PYEXE, "-m", "dotenv", *args]
         else:
@@ -75,13 +79,15 @@ def run_subprocess(which, invocation, args, cwd, columns, input_text=None, extra
             argv = [PYEXE, "-m", "envrelay", *args]
         else:
             argv = [CONSOLE, *args]
-    proc = subprocess.run(argv, cwd=cwd, env=env, input=input_text, capture_output=True, text=True)
+    proc = subprocess.run(
+        argv, cwd=cwd, env=env, input=input_text, capture_output=True, text=True
+    )
     return proc.returncode, proc.stdout, reduce_tb(proc.stderr)
 
 
 # --- CliRunner in a forked child --------------------------------------------
 
-_CHILD = r'''
+_CHILD = r"""
 import os, sys, json
 cwd, which, columns, args_json, input_text, out_path, err_path, payload_path = (
     sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6],
@@ -114,7 +120,7 @@ payload = {"exit": result.exit_code, "stdout": result.stdout, "stderr": err}
 pfd = os.open(payload_path, os.O_WRONLY)
 os.write(pfd, json.dumps(payload).encode())
 os.close(pfd)
-'''
+"""
 
 
 def run_clirunner(which, args, cwd, columns, input_text=None):
@@ -137,8 +143,17 @@ def run_clirunner(which, args, cwd, columns, input_text=None):
     if which == "oracle":
         env["ORACLE_DIR"] = ORACLE_DIR
     argv = [
-        PYEXE, "-c", _CHILD, cwd, which, str(columns), json.dumps(args),
-        input_text or "", out_path, err_path, payload_path,
+        PYEXE,
+        "-c",
+        _CHILD,
+        cwd,
+        which,
+        str(columns),
+        json.dumps(args),
+        input_text or "",
+        out_path,
+        err_path,
+        payload_path,
     ]
     proc = subprocess.run(argv, env=env, capture_output=True, text=True)
     with open(out_path) as fh:
@@ -159,10 +174,13 @@ def run_clirunner(which, args, cwd, columns, input_text=None):
 
 # --- pseudo-terminal ---------------------------------------------------------
 
+
 def run_pty(which, invocation, args, cwd, columns, input_text=None, extra_env=None):
     env = _base_env(columns, extra_env)
     if which == "oracle":
-        env["PYTHONPATH"] = os.pathsep.join([ORACLE_DIR, os.path.join(ORACLE_DIR, "deps")])
+        env["PYTHONPATH"] = os.pathsep.join(
+            [ORACLE_DIR, os.path.join(ORACLE_DIR, "deps")]
+        )
         if invocation == "module":
             argv = [PYEXE, "-m", "dotenv", *args]
         else:
@@ -177,7 +195,12 @@ def run_pty(which, invocation, args, cwd, columns, input_text=None, extra_env=No
     master, slave = pty.openpty()
     err_r, err_w = os.pipe()
     proc = subprocess.Popen(
-        argv, cwd=cwd, env=env, stdin=subprocess.PIPE, stdout=slave, stderr=err_w,
+        argv,
+        cwd=cwd,
+        env=env,
+        stdin=subprocess.PIPE,
+        stdout=slave,
+        stderr=err_w,
         close_fds=True,
     )
     os.close(slave)

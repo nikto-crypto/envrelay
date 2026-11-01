@@ -108,4 +108,6 @@ def test_magic_arguments():
     assert api["magic"] == "dotenv"
     # The magic function exists and accepts the IPython shell.
     assert callable(envrelay.load_ipython_extension)
-    assert list(inspect.signature(envrelay.load_ipython_extension).parameters) == ["ipython"]
+    assert list(inspect.signature(envrelay.load_ipython_extension).parameters) == [
+        "ipython"
+    ]

@@ -16,7 +16,7 @@ from ._core import load_into_environ, logger
 from ._parsing import parse
 
 
-def read_values(path: str, interpolate: bool = True) -> "OrderedDict":
+def read_values(path: str, interpolate: bool = True) -> OrderedDict:
     """Open ``path`` with the locale's default encoding and parse it.
 
     Raises the underlying ``OSError`` (missing file, directory, ...) or

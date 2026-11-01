@@ -14,13 +14,12 @@ import os
 import shutil
 import tempfile
 
-import pytest
-from hypothesis import given, settings, HealthCheck
-
 import cli_modes
 import grammar
 import normalizer
 import oracle_iface
+import pytest
+from hypothesis import HealthCheck, given, settings
 
 _OK, _REASON = oracle_iface.availability()
 pytestmark = pytest.mark.skipif(not _OK, reason=_REASON)
@@ -41,7 +40,9 @@ def _prog_version(which, mode, invocation):
 
 def _run(which, mode, invocation, args, cwd, columns, input_text=None):
     if mode == "subprocess":
-        return cli_modes.run_subprocess(which, invocation, args, cwd, columns, input_text)
+        return cli_modes.run_subprocess(
+            which, invocation, args, cwd, columns, input_text
+        )
     if mode == "pty":
         return cli_modes.run_pty(which, invocation, args, cwd, columns, input_text)
     return cli_modes.run_clirunner(which, args, cwd, columns, input_text)
@@ -122,7 +123,11 @@ def test_cli_cases(mode, label, initial, args):
     for invocation in invocations:
         ok, results = _compare(initial, args, mode, invocation)
         assert ok, "%s/%s/%s: oracle=%r mine=%r" % (
-            mode, invocation, label, results["oracle"], results["mine"],
+            mode,
+            invocation,
+            label,
+            results["oracle"],
+            results["mine"],
         )
 
 
@@ -136,14 +141,23 @@ def test_cli_help(columns, args):
             cols = columns if columns is not None else 80
             ok, results = _compare(None, args, mode, invocation, columns=cols)
             assert ok, "help %s/%s/%s cols=%s: oracle=%r mine=%r" % (
-                mode, invocation, args, columns, results["oracle"], results["mine"],
+                mode,
+                invocation,
+                args,
+                columns,
+                results["oracle"],
+                results["mine"],
             )
 
 
 @settings(
     max_examples=_SCALE,
     deadline=None,
-    suppress_health_check=[HealthCheck.too_slow, HealthCheck.data_too_large, HealthCheck.function_scoped_fixture],
+    suppress_health_check=[
+        HealthCheck.too_slow,
+        HealthCheck.data_too_large,
+        HealthCheck.function_scoped_fixture,
+    ],
 )
 @given(text=grammar.env_documents())
 @pytest.mark.parametrize("mode", ["subprocess", "clirunner", "pty"])
@@ -151,5 +165,8 @@ def test_cli_list_generated(mode, text):
     initial = text.encode("utf-8", "surrogatepass")
     ok, results = _compare(initial, ["list"], mode)
     assert ok, "%s list on %r: oracle=%r mine=%r" % (
-        mode, text, results["oracle"], results["mine"],
+        mode,
+        text,
+        results["oracle"],
+        results["mine"],
     )

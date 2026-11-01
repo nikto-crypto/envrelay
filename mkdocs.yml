@@ -1,0 +1,39 @@
+site_name: envrelay
+site_description: Read, load, and edit .env files.
+repo_url: https://github.com/nserapiglia/envrelay
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: teal
+    - scheme: slate
+      primary: teal
+  features:
+    - navigation.sections
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - API reference: api.md
+  - Contributing: contributing.md
+  - Changelog: changelog.md
+  - License: license.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            show_root_heading: true
+            show_signature_annotations: true
+
+markdown_extensions:
+  - admonition
+  - pymdownx.superfences
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true

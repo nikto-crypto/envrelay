@@ -19,13 +19,14 @@ drift that appears when a document read from a stream uses CRLF/CR endings.
 from __future__ import annotations
 
 import re
-from typing import NamedTuple, Optional
+from typing import NamedTuple
+
 
 # A unit of parsed content. ``value is None`` marks a key written with no "="
 # (e.g. a bare ``FOO`` line).
 class Entry(NamedTuple):
     key: str
-    value: Optional[str]
+    value: str | None
 
 
 class ParseResult(NamedTuple):
@@ -42,8 +43,8 @@ class Segment(NamedTuple):
     """
 
     kind: str
-    key: Optional[str]
-    value: Optional[str]
+    key: str | None
+    value: str | None
     text: str
 
 
@@ -108,7 +109,7 @@ _SQ_MAP = {"\\": "\\", "'": "'"}
 
 
 def _decode(inner: str, table: dict) -> str:
-    def repl(m: "re.Match") -> str:
+    def repl(m: re.Match) -> str:
         c = m.group(1)
         if c in table:
             return table[c]
@@ -144,7 +145,7 @@ class _Cursor:
         return self.pos >= len(self.text)
 
     def advance_to(self, new_pos: int) -> None:
-        self.line += _count_breaks(self.text[self.pos:new_pos])
+        self.line += _count_breaks(self.text[self.pos : new_pos])
         self.pos = new_pos
 
 
@@ -304,13 +305,13 @@ def scan(text: str) -> ScanResult:
             consumed_leading = False
             mb = _BLANK_LINE.match(text, cur.pos)
             if mb and mb.end() > cur.pos:
-                segments.append(Segment("raw", None, None, text[cur.pos:mb.end()]))
+                segments.append(Segment("raw", None, None, text[cur.pos : mb.end()]))
                 cur.advance_to(mb.end())
                 consumed_leading = True
                 continue
             mc = _COMMENT_LINE.match(text, cur.pos)
             if mc and mc.end() > cur.pos:
-                segments.append(Segment("raw", None, None, text[cur.pos:mc.end()]))
+                segments.append(Segment("raw", None, None, text[cur.pos : mc.end()]))
                 cur.advance_to(mc.end())
                 start_line = cur.line  # a comment resets the leading-blank start
                 drift += carry  # a comment folds in any pending carry
@@ -322,7 +323,7 @@ def scan(text: str) -> ScanResult:
         # a final blank/comment line with no terminator ends the document
         tb = _TRAILING_BLANK.match(text, cur.pos)
         if tb and tb.end() == n:
-            segments.append(Segment("raw", None, None, text[cur.pos:n]))
+            segments.append(Segment("raw", None, None, text[cur.pos : n]))
             cur.advance_to(n)
             break
         result = _try_binding(text, cur.pos)
@@ -330,7 +331,7 @@ def scan(text: str) -> ScanResult:
             # An "export + comment" line is a comment: no entry, no error; it
             # folds in any pending carry like any other comment line.
             end = result[1]
-            segments.append(Segment("raw", None, None, text[cur.pos:end]))
+            segments.append(Segment("raw", None, None, text[cur.pos : end]))
             cur.advance_to(end)
             drift += carry
             carry = 0
@@ -339,7 +340,7 @@ def scan(text: str) -> ScanResult:
             # Resume after whatever the failed attempt consumed (a quoted value
             # may have crossed newlines) and skip to the next terminator.
             is_crlf, end = _skip_bad_line(text, result[1])
-            segments.append(Segment("raw", None, None, text[cur.pos:end]))
+            segments.append(Segment("raw", None, None, text[cur.pos : end]))
             cur.advance_to(end)
             # Fold in the previous statement's carry, then leave our own.
             drift += carry
@@ -347,7 +348,7 @@ def scan(text: str) -> ScanResult:
         else:
             entry, end = result
             segments.append(
-                Segment("bind", entry.key, entry.value, text[cur.pos:end])
+                Segment("bind", entry.key, entry.value, text[cur.pos : end])
             )
             cur.advance_to(end)
             drift += carry

@@ -17,3 +17,6 @@ htmlcov/
 coverage.xml
 # Local scratch
 report.json
+
+# MkDocs
+site/

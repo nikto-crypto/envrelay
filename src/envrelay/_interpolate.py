@@ -16,23 +16,23 @@ from __future__ import annotations
 
 import re
 from collections import OrderedDict
-from typing import Callable, Optional, Tuple
+from collections.abc import Callable
 
 _REF = re.compile(r"\$\{([^}]*)\}")
 
 
-def expand(value: str, lookup: Callable[[str], Tuple[bool, Optional[str]]]) -> str:
+def expand(value: str, lookup: Callable[[str], tuple[bool, str | None]]) -> str:
     """Expand ``${...}`` references in ``value`` using ``lookup``.
 
     ``lookup(name)`` returns ``(found, value)``.
     """
 
-    def repl(match: "re.Match") -> str:
+    def repl(match: re.Match) -> str:
         inner = match.group(1)
         sep = inner.find(":-")
         if sep >= 0:
             name = inner[:sep]
-            default = inner[sep + 2:]
+            default = inner[sep + 2 :]
         else:
             name = inner
             default = None
@@ -44,14 +44,14 @@ def expand(value: str, lookup: Callable[[str], Tuple[bool, Optional[str]]]) -> s
     return _REF.sub(repl, value)
 
 
-def resolve(entries, environ) -> "OrderedDict":
+def resolve(entries, environ) -> OrderedDict:
     """Resolve a list of entries into an OrderedDict, expanding as we go.
 
     A reference resolves against values already produced (earlier in the
     document) first, then against ``environ``. Entries with ``value is None``
     are kept as ``None`` and are not treated as a source for expansion.
     """
-    out: "OrderedDict" = OrderedDict()
+    out: OrderedDict = OrderedDict()
     for key, value in entries:
         if value is None:
             out[key] = None
@@ -70,9 +70,9 @@ def resolve(entries, environ) -> "OrderedDict":
     return out
 
 
-def resolve_plain(entries) -> "OrderedDict":
+def resolve_plain(entries) -> OrderedDict:
     """Build an OrderedDict with no interpolation (last duplicate wins)."""
-    out: "OrderedDict" = OrderedDict()
+    out: OrderedDict = OrderedDict()
     for key, value in entries:
         out[key] = value
     return out

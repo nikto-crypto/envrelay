@@ -1,0 +1,32 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[cli]"
+          python -m pip install pytest hypothesis ipython ruff
+      - name: Lint
+        run: ruff check src tests scripts
+      - name: Unit + conformance + lint tests
+        # The differential suite needs the bytecode-only oracle, which is not
+        # available in CI; those tests skip here. The rest stand alone.
+        run: pytest tests/unit tests/conformance tests/test_ast_lint.py -p no:warnings
