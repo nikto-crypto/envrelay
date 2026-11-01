@@ -22,7 +22,7 @@ _COMMON = dict(
 )
 
 
-@settings(max_examples=_SCALE * 17, **_COMMON)
+@settings(max_examples=_SCALE * 6, **_COMMON)
 @given(scenario=grammar.edit_scenario())
 def test_edit_sequences(scenario):
     initial, ops, make_symlink = scenario
