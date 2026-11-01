@@ -43,7 +43,9 @@ def _collect(
     from a stream keeps its original line endings, while text from a file has
     CR/CRLF folded to LF.
     """
-    if dotenv_path and os.path.isfile(dotenv_path):
+    if dotenv_path and os.path.exists(dotenv_path) and not os.path.isdir(dotenv_path):
+        # Reads a regular file or a FIFO like a file; a directory (or a missing
+        # path) is treated as "no configuration file found".
         text = _read_text_from_path(dotenv_path, encoding)
     elif stream is not None:
         text = stream.read()
