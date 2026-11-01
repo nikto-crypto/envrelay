@@ -130,28 +130,49 @@ def load_into_environ(
         return False
     entries, _ = collected
     _apply_to_environ(entries, override, interpolate)
-    return True
+    # True when the source yielded at least one key (even a value-less one),
+    # False for an empty / comment-only / unparsable source.
+    return bool(entries)
 
 
 def _apply_to_environ(entries, override: bool, interpolate: bool) -> None:
-    effective = dict(os.environ)
-    for key, value in entries:
+    # Resolve every entry into a last-wins mapping first (interpolation reads the
+    # current os.environ, with precedence depending on override), then write it
+    # out. Writing can raise part-way (e.g. an embedded NUL), leaving the keys
+    # resolved before it already set.
+    resolved = _resolve_for_load(entries, override, interpolate)
+    for key, value in resolved.items():
         if value is None:
             continue
-        if interpolate:
-            def lookup(name: str):
-                if name in effective:
-                    return True, effective[name]
-                return False, None
-
-            resolved = _interpolate.expand(value, lookup)
-        else:
-            resolved = value
         if override or key not in os.environ:
-            os.environ[key] = resolved
-            effective[key] = resolved
-        else:
-            effective[key] = os.environ[key]
+            os.environ[key] = value
+
+
+def _resolve_for_load(entries, override: bool, interpolate: bool) -> "OrderedDict":
+    out: "OrderedDict" = OrderedDict()
+    for name, value in entries:
+        if value is None or not interpolate:
+            out[name] = value
+            continue
+
+        def lookup(ref: str):
+            env_has = ref in os.environ
+            local = out.get(ref)
+            local_has = ref in out  # present even when the value is None
+            if override:
+                if local_has:
+                    return True, local
+                if env_has:
+                    return True, os.environ[ref]
+            else:
+                if env_has:
+                    return True, os.environ[ref]
+                if local_has:
+                    return True, local
+            return False, None
+
+        out[name] = _interpolate.expand(value, lookup)
+    return out
 
 
 # --- locating ----------------------------------------------------------------

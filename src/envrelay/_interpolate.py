@@ -58,7 +58,9 @@ def resolve(entries, environ) -> "OrderedDict":
             continue
 
         def lookup(name: str):
-            if name in out and out[name] is not None:
+            # A key already seen (even one with value None, which expands to "")
+            # counts as present, so its ":-default" does not fire.
+            if name in out:
                 return True, out[name]
             if name in environ:
                 return True, environ[name]

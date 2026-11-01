@@ -60,17 +60,19 @@ _TERM = re.compile(r"\r\n|\r|\n")
 # Counts universal line breaks in a chunk of text.
 _BREAKS = re.compile(r"\r\n|\r|\n")
 
-# Leading run of blank / whitespace-only / comment lines, each ended by a
-# terminator. A trailing blank/comment line with no terminator is handled
-# separately so the final line of a file is classified correctly.
-_SKIP_LINES = re.compile(r"(?:" + _H + r"*(?:#[^\r\n]*)?(?:\r\n|\r|\n))*")
+# A single blank / whitespace-only line (with its terminator), and a single
+# comment line (with its terminator). A trailing blank/comment line with no
+# terminator (at end of file) is matched separately.
+_BLANK_LINE = re.compile(_H + r"*(?:\r\n|\r|\n)")
+_COMMENT_LINE = re.compile(_H + r"*#[^\r\n]*(?:\r\n|\r|\n)")
 _TRAILING_BLANK = re.compile(_H + r"*(?:#[^\r\n]*)?\Z")
 
-# A key: either a complete single-quoted run (quotes stripped) or a run of
-# characters that are not whitespace, "=", "#", or "'". Double quotes are
-# ordinary key characters, so a double-quoted key keeps its quotes; but a lone
-# leading "'" with no closing quote is a parse error, not a key character.
-_KEY = re.compile(r"'[^']*'|[^\s=#']+")
+# A key: either a complete single-quoted run (quotes stripped), or a bare run
+# whose first character is not whitespace/"="/"#"/"'" and whose remaining
+# characters are not whitespace/"="/"#". So a "'" only starts a quoted key (which
+# must be terminated, else it is a parse error), but a "'" later in a bare key is
+# an ordinary character, and a double-quoted key keeps its quotes.
+_KEY = re.compile(r"'[^']*'|[^\s=#'][^\s=#]*")
 # The optional ``export`` keyword, only when followed by whitespace.
 _EXPORT = re.compile(r"export" + _H + r"+")
 
@@ -78,6 +80,14 @@ _EXPORT = re.compile(r"export" + _H + r"+")
 # lets a quote be escaped inside its own quoting without ending the value.
 _SINGLE = re.compile(r"'(?:\\.|[^'\\])*'", re.DOTALL)
 _DOUBLE = re.compile(r'"(?:\\.|[^"\\])*"', re.DOTALL)
+
+# Sentinel returned by _try_binding for an "export + comment" line: no entry and
+# no parse error.
+_COMMENT = object()
+# Sentinel returned by _try_binding for a parse error; paired with the furthest
+# position the attempt reached, so recovery resumes from there (which matters
+# when a quoted value already consumed one or more newlines before the failure).
+_ERROR = object()
 
 _ESCAPE = re.compile(r"\\(.)", re.DOTALL)
 # Escapes decoded inside double quotes.
@@ -190,10 +200,18 @@ def _try_binding(text: str, start: int):
     em = _EXPORT.match(text, i)
     if em:
         i = em.end()
+        # "export" + whitespace + comment is a comment line (no entry, no
+        # error); "export" + whitespace + end-of-line or "=" is an error.
+        if i < n and text[i] == "#":
+            j = i
+            while j < n and text[j] not in "\r\n":
+                j += 1
+            tm = _TERM.match(text, j)
+            return _COMMENT, (tm.end() if tm else j)
     # key
     km = _KEY.match(text, i)
     if not km:
-        return None
+        return _ERROR, i
     raw_key = km.group(0)
     i = km.end()
     if len(raw_key) >= 2 and raw_key[0] == "'" and raw_key[-1] == "'":
@@ -212,11 +230,12 @@ def _try_binding(text: str, start: int):
             i += 1
         return _finish(text, key, None, i)
     if text[i] != "=":
-        return None
+        return _ERROR, i
     i += 1  # consume "="
+    value_start = i
     parsed = _match_value(text, i)
     if parsed is None:
-        return None
+        return _ERROR, value_start
     value, i = parsed
     # trailing padding + optional comment, then must reach end of line
     while i < n and text[i] in " \t":
@@ -225,7 +244,7 @@ def _try_binding(text: str, start: int):
         while i < n and text[i] not in "\r\n":
             i += 1
     if i < n and text[i] not in "\r\n":
-        return None
+        return _ERROR, i
     return _finish(text, key, value, i)
 
 
@@ -239,13 +258,14 @@ def _finish(text: str, key: str, value, i: int):
 def _skip_bad_line(text: str, i: int):
     """Skip the remainder of a line after a parse failure.
 
-    Returns ``(terminator_has_cr, end_index)``. ``end_index`` is just past the
-    next terminator (or EOF).
+    Returns ``(terminator_is_crlf, end_index)``. ``end_index`` is just past the
+    next terminator (or EOF). Only a ``\r\n`` terminator feeds the line drift; a
+    lone ``\r`` does not.
     """
     m = _TERM.search(text, i)
     if not m:
         return False, len(text)
-    return ("\r" in m.group(0)), m.end()
+    return (m.group(0) == "\r\n"), m.end()
 
 
 def scan(text: str) -> ScanResult:
@@ -258,22 +278,42 @@ def scan(text: str) -> ScanResult:
     cur = _Cursor(text)
     segments: list = []
     error_lines: list = []
-    # Line drift seen with CR-bearing terminators: each statement that fails
-    # leaves a stray CR that is only counted when the next binding succeeds.
+    # Line-number drift seen when text from a stream uses CR-bearing endings.
+    # A statement that fails on a CR-terminated line leaves a stray carry of 1;
+    # that carry is folded into the running ``drift`` at the next non-blank,
+    # non-failing event (a comment or a successful binding) -- and, for a run of
+    # consecutive failures, one statement late. Blank lines are transparent.
     drift = 0
-    pending_cr = 0
+    carry = 0
     guard = 0
     n = len(text)
     while not cur.at_end():
         guard += 1
         if guard > n + 2:
             break
+        # Consume leading blank and comment lines. The reported line for the
+        # statement that follows is the start of the run of blank lines that
+        # immediately precedes it; a comment line resets that start (blanks
+        # before a comment do not count), while blank lines after a comment do.
         start_line = cur.line
-        # skip (and preserve) blank / comment / whitespace-only lines
-        m = _SKIP_LINES.match(text, cur.pos)
-        if m.end() > cur.pos:
-            segments.append(Segment("raw", None, None, text[cur.pos:m.end()]))
-            cur.advance_to(m.end())
+        consumed_leading = True
+        while consumed_leading and not cur.at_end():
+            consumed_leading = False
+            mb = _BLANK_LINE.match(text, cur.pos)
+            if mb and mb.end() > cur.pos:
+                segments.append(Segment("raw", None, None, text[cur.pos:mb.end()]))
+                cur.advance_to(mb.end())
+                consumed_leading = True
+                continue
+            mc = _COMMENT_LINE.match(text, cur.pos)
+            if mc and mc.end() > cur.pos:
+                segments.append(Segment("raw", None, None, text[cur.pos:mc.end()]))
+                cur.advance_to(mc.end())
+                start_line = cur.line  # a comment resets the leading-blank start
+                drift += carry  # a comment folds in any pending carry
+                carry = 0
+                consumed_leading = True
+                continue
         if cur.at_end():
             break
         # a final blank/comment line with no terminator ends the document
@@ -283,21 +323,32 @@ def scan(text: str) -> ScanResult:
             cur.advance_to(n)
             break
         result = _try_binding(text, cur.pos)
-        if result is not None:
+        if result[0] is _COMMENT:
+            # An "export + comment" line is a comment: no entry, no error; it
+            # folds in any pending carry like any other comment line.
+            end = result[1]
+            segments.append(Segment("raw", None, None, text[cur.pos:end]))
+            cur.advance_to(end)
+            drift += carry
+            carry = 0
+        elif result[0] is _ERROR:
+            error_lines.append(start_line + drift)
+            # Resume after whatever the failed attempt consumed (a quoted value
+            # may have crossed newlines) and skip to the next terminator.
+            is_crlf, end = _skip_bad_line(text, result[1])
+            segments.append(Segment("raw", None, None, text[cur.pos:end]))
+            cur.advance_to(end)
+            # Fold in the previous statement's carry, then leave our own.
+            drift += carry
+            carry = 1 if is_crlf else 0
+        else:
             entry, end = result
             segments.append(
                 Segment("bind", entry.key, entry.value, text[cur.pos:end])
             )
             cur.advance_to(end)
-            drift += pending_cr
-            pending_cr = 0
-        else:
-            error_lines.append(start_line + drift)
-            has_cr, end = _skip_bad_line(text, cur.pos)
-            segments.append(Segment("raw", None, None, text[cur.pos:end]))
-            cur.advance_to(end)
-            if has_cr:
-                pending_cr += 1
+            drift += carry
+            carry = 0
     return ScanResult(segments, error_lines)
 
 
