@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+# Virtualenv
+.venv/
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+.tox/
+.coverage
+htmlcov/
+coverage.xml
+# Local scratch
+report.json
