@@ -159,3 +159,16 @@ documents and edit every key; the interpolation grammar emits every brace form;
 modes; `find_dotenv` run modes include `sys.ps1`/`sys.ps2` (alone and combined
 with tracer/frozen); and realistic `.env.example`-style templates (web app,
 self-hosting, Docker Compose) are read and per-key-edited.
+
+## Fix round 2 (external review)
+
+An external review found one divergence: the IPython magic's docstring help (what
+`%dotenv?` and `ip.find_line_magic('dotenv').__doc__` show) listed the positional
+`dotenv_path` with no help text, while the oracle lists it as
+``dotenv_path     Search in increasingly higher folders for the `dotenv_path` ``.
+Confirmed against the oracle through a wrapper by comparing
+`ip.find_line_magic('dotenv').__doc__` from an `InteractiveShell` on both sides.
+Fix: add that exact `help=` string to the magic's `dotenv_path` argument
+(`src/envrelay/_magic.py`); nothing else changed. Added a differential test
+comparing the magic's docstring (not the `File:` line) via `scripts/magic_doc.py`
+and `tests/differential/test_magic.py::test_magic_docstring_help`.

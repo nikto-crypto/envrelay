@@ -20,6 +20,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 PY = os.path.join(REPO, ".venv", "bin", "python")
 RUNNER = os.path.join(REPO, "scripts", "magic_runner.py")
+DOC_PROBE = os.path.join(REPO, "scripts", "magic_doc.py")
 
 _OK, _REASON = oracle_iface.availability()
 pytestmark = pytest.mark.skipif(not _OK, reason=_REASON)
@@ -83,3 +84,22 @@ def test_magic_differential():
         o = oracle.get(cmd)
         m = mine.get(cmd)
         assert o == m, "magic %r: oracle=%r mine=%r" % (cmd, o, m)
+
+
+def _docstring(ext):
+    env = dict(os.environ)
+    env.pop("PYTHONPATH", None)
+    proc = subprocess.run(
+        [PY, DOC_PROBE, ext], env=env, capture_output=True, text=True
+    )
+    for line in proc.stdout.splitlines():
+        if line.startswith("{"):
+            return json.loads(line)
+    raise AssertionError("magic_doc (%s) no output: %s" % (ext, proc.stderr[-500:]))
+
+
+def test_magic_docstring_help():
+    """The magic's __doc__ (what %dotenv? and find_line_magic(...).__doc__ show,
+    excluding the File: line) must match the oracle's, including the positional
+    argument's help text."""
+    assert _docstring("envrelay") == _docstring("dotenv")

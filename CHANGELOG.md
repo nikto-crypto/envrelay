@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed (Fix round 2 — from an external review)
+
+- The IPython `%dotenv` magic's docstring help now lists the `dotenv_path`
+  positional argument with its help text ("Search in increasingly higher folders
+  for the `dotenv_path`"), matching python-dotenv 1.2.4.
+
 ### Fixed (Fix round 1 — from an external evaluation)
 
 An independent evaluation on 1,250 unseen `.env` files surfaced five behavioral

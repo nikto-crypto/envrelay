@@ -37,7 +37,13 @@ def load_ipython_extension(ipython):
             action="store_true",
             help="Indicate function calls to be verbose",
         )
-        @argument("dotenv_path", nargs="?", type=str, default=".env")
+        @argument(
+            "dotenv_path",
+            nargs="?",
+            type=str,
+            default=".env",
+            help="Search in increasingly higher folders for the `dotenv_path`",
+        )
         def dotenv(self, line):
             args = parse_argstring(self.dotenv, line)
             try:
