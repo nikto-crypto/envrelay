@@ -105,3 +105,17 @@ Pass rates are reported as (tests green / tests run) for that phase's checks.
 - API surface conformance: 100% (`tests/conformance`).
 - Full suite under `ENVRELAY_REQUIRE_ORACLE=1`: all tests pass, zero skipped
   (see the evidence run in NEXT_STEPS.md / the final report).
+
+## Independent review
+
+A fresh subagent, bound by the same independence rules and probing the oracle
+only through the repo wrappers, reviewed the harness for uncovered channels and
+added five differential test files (disabled-flag, reader encodings, extra
+editing, extra CLI, find symlinked dirs). It reported no independence near-misses
+or guard denials and did not read oracle source. It surfaced one genuine
+behavioral mismatch — `set_key`'s `UnicodeEncodeError` byte position when
+rewriting a non-empty file with a value the encoding can't represent (the
+reference's position is relative to the offending rendered line, not the whole
+file). This was fixed by writing each rendered binding / preserved span
+separately in `_editing._atomic_write`; verified against the oracle (positions
+3/5 match) and the review's test now passes rather than xfailing.

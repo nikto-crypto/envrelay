@@ -59,7 +59,7 @@ def _read_existing(path: str, encoding: str | None) -> str | None:
 
 
 def _atomic_write(
-    link_path: str, write_path: str, body: str, encoding: str | None
+    link_path: str, write_path: str, pieces, encoding: str | None
 ) -> None:
     directory = os.path.dirname(write_path) or os.curdir
     # Keep the mode of an existing regular file; a brand-new file -- including one
@@ -71,7 +71,11 @@ def _atomic_write(
     fd, tmp = tempfile.mkstemp(dir=directory, prefix=".tmp_")
     try:
         with os.fdopen(fd, "w", encoding=encoding, newline="") as handle:
-            handle.write(body)
+            # Each piece (one rendered binding or one preserved span) is written
+            # separately, so an encoding error's reported position is relative to
+            # the offending piece rather than the whole file.
+            for piece in pieces:
+                handle.write(piece)
         os.chmod(tmp, mode)
         os.replace(tmp, write_path)
     except BaseException:
@@ -112,13 +116,13 @@ def set_key(
             replaced = True
         else:
             pieces.append(seg.text)
-    body = "".join(pieces)
     if not replaced:
-        if body and not body.endswith("\n"):
-            body += "\n"
-        body += new_line
+        joined = "".join(pieces)
+        if joined and not joined.endswith("\n"):
+            pieces.append("\n")
+        pieces.append(new_line)
 
-    _atomic_write(dotenv_path, write_path, body, encoding)
+    _atomic_write(dotenv_path, write_path, pieces, encoding)
     return True, key_to_set, value_to_set
 
 
@@ -154,7 +158,7 @@ def unset_key(
         for seg in scanned.segments
         if not (seg.kind == "bind" and seg.key == key_to_unset)
     ]
-    _atomic_write(dotenv_path, write_path, "".join(pieces), encoding)
+    _atomic_write(dotenv_path, write_path, pieces, encoding)
     if present:
         return True, key_to_unset
     logger.warning(

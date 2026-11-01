@@ -65,6 +65,30 @@ A cell lists the test(s) that exercise that input class on that channel.
 | API surface (sig/__all__/tree) | — | — | — | — | — | — | — | — | conf | — |
 | Realistic configs | cfg | cfg | cfg | — | — | — | cfg | — | — | — |
 
+## Added by the independent review (extra coverage)
+
+A fresh independence-bound review added these differential test files, filling
+gaps in the grid above:
+
+- `test_disabled.py` — `PYTHON_DOTENV_DISABLED` trigger/non-trigger values across
+  `load_dotenv`, that `dotenv_values`/`get_key`/CLI `run` ignore it, and that the
+  magic honors it (channels 2, 3, 7, 8).
+- `test_reader_encoding.py` — non-UTF-8 reads (latin-1, utf-16, cp1252, BOM,
+  ascii-strict, undecodable bytes) with matching/mismatching `encoding=`
+  (channels 1–3).
+- `test_edit_extra.py` — set_key with an unencodable value (new + existing file,
+  byte-position parity), get_key/unset_key on valueless keys, read-only files
+  (mode preserved, new inode, no leftover temp) (channel 4).
+- `test_cli_extra.py` — `-e` boolean spellings, `--format` case sensitivity,
+  `run --`, stdin piped to the `run` child, `-f -` for get/list, and `list` on
+  undecodable-byte files, across all three run modes (channel 7).
+- `test_find_symlink.py` — `find_dotenv` through symlinked directories
+  (channel 5).
+
+The review surfaced one real mismatch (set_key encoding-error byte position on a
+non-empty file), which was then fixed in `src/envrelay/_editing.py` (per-piece
+writing); the test now passes.
+
 ## Generated-case counts (final evidence run)
 
 See PROVENANCE.md and the README for the exact figures produced by the final
