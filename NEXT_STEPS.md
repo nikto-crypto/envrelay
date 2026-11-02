@@ -50,6 +50,17 @@ Per-channel differential result: zero mismatches on every channel (1–10) over
 the covered input space (grammar-generated plus hand-written). This is strong
 evidence, not a proof over all inputs — see Fix round 1 below.
 
+## Fix round 3 (external evaluation)
+
+A 30,000-case adversarial fuzz found three divergences, all fixed and covered
+(see PROVENANCE.md / CHANGELOG.md): every `str.isspace()` character is whitespace
+(only `\r`/`\n` terminate lines); an empty single-quoted key `''` is a parse
+error; and `${...}` matches only `${name}`/`${name:-default}` (name to first
+`:`/`}`), so an unclosed `${a:` stays literal while a later `${B}` expands. The
+grammar now injects every whitespace/control character in every position (streams
+and files, readers, CLI, per-key edits), plus empty/quoted-empty keys and
+malformed brace forms.
+
 ## Fix round 1 (external evaluation)
 
 An independent evaluation on 1,250 unseen `.env` files found five divergences;

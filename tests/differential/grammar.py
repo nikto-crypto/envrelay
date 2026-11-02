@@ -28,6 +28,9 @@ _FANCY_KEYS = [
     "'q k'",
     '"dq"',
     "KEY#x",  # a '#' splits here
+    "''",  # empty single-quoted key (a parse error)
+    "' '",  # single-quoted space key
+    '""',  # double-quoted empty -> key '""'
 ]
 keys = st.sampled_from(_PLAIN_KEYS + _FANCY_KEYS)
 
@@ -85,8 +88,37 @@ _INTERP = [
     "${A",
     "${{A}}",
     "x${A:?e}y${B}",
+    # malformed / unclosed brace forms followed by a valid reference
+    "${a:x${B}",
+    "${a${B}",
+    "${${B}}",
+    "${a:${B}}",
+    "${a:-x${B}}",
+    "${a}x${B}",
+    "pre${a:b${B}post",
 ]
 _CONTROL = ["a\x01b", "tab\there", "bell\x07", "x\x0cy"]
+
+# Every character for which str.isspace() is true (space, tab, the C0 whitespace
+# controls, NEL, NBSP, line/paragraph separators, and representative Unicode
+# spaces), plus a couple of non-whitespace control characters.
+_WS = [
+    " ",
+    "\t",
+    "\x0b",
+    "\x0c",
+    "\x1c",
+    "\x1d",
+    "\x1e",
+    "\x1f",
+    "\x85",
+    "\xa0",
+    " ",
+    " ",
+    " ",
+    "　",
+]
+_CTRL = ["\x00", "\x01", "\x07"]
 
 
 @st.composite
@@ -141,19 +173,31 @@ def _value(draw):
 
 
 @st.composite
+def _ws(draw):
+    """A short run of horizontal whitespace, biased toward exotic characters."""
+    n = draw(st.integers(min_value=0, max_value=2))
+    return "".join(draw(st.sampled_from(_WS)) for _ in range(n))
+
+
+@st.composite
 def _binding_line(draw):
     key = draw(keys)
-    export = draw(st.sampled_from(["", "export ", "export\t", "export  "]))
+    export = draw(
+        st.sampled_from(["", "export ", "export\t", "export  ", "export\xa0"])
+    )
+    lead = draw(_ws())  # whitespace before the key / export
     has_eq = draw(st.booleans())
     if not has_eq:
-        # bare key, maybe trailing comment/space
-        tail = draw(st.sampled_from(["", " ", "  # c", "\t# c", " # x"]))
-        return export + key + tail
-    pre = draw(st.sampled_from(["", " ", "  ", "\t", " \t "]))
-    post = draw(st.sampled_from(["", " ", "  ", "\t"]))
+        # bare key, maybe trailing whitespace/comment (exotic ws included)
+        tail = draw(_ws())
+        comment = draw(st.sampled_from(["", "# c", "#x"]))
+        return lead + export + key + tail + comment
+    pre = draw(_ws())
+    post = draw(_ws())
     value = draw(_value())
-    comment = draw(st.sampled_from(["", " # c", "\t# c", " #nospace-handled"]))
-    return export + key + pre + "=" + post + value + comment
+    trail = draw(_ws())
+    comment = draw(st.sampled_from(["", "# c", "#nospace", "\t# c"]))
+    return lead + export + key + pre + "=" + post + value + trail + comment
 
 
 @st.composite
@@ -172,6 +216,17 @@ def _other_line(draw):
                 "key with space=1",  # parse error
                 "A" + "x" * 300 + "=longkey",  # long line
                 "LONG=" + "v" * 500,  # long value
+                "''=x",  # parse error: empty single-quoted key
+                "''",  # parse error: empty single-quoted key, no value
+                '""=x',  # key '""' kept
+                "' '=x",  # key ' '
+                "export ''=x",  # parse error
+                "A=val\xa0",  # trailing exotic whitespace
+                "A\xa0=b",  # exotic whitespace before '='
+                "　A=1",  # leading exotic whitespace
+                "A=v\x0c",  # trailing form feed
+                "A=v\x1e# c",  # exotic whitespace before comment
+                "A=\x85v",  # exotic whitespace after '='
             ]
         )
     )
@@ -207,7 +262,21 @@ def env_documents(draw):
     return text
 
 
-_EDIT_KEYS = ["A", "B", "C", "NOPE", "a b=c", "a_b", "café", "'q'", "K#x", "export"]
+_EDIT_KEYS = [
+    "A",
+    "B",
+    "C",
+    "NOPE",
+    "a b=c",
+    "a_b",
+    "café",
+    "'q'",
+    "K#x",
+    "export",
+    "",
+    "' '",
+    '""',
+]
 _EDIT_VALUES = [
     "v",
     "a b",

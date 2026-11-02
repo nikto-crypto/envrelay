@@ -18,7 +18,13 @@ import re
 from collections import OrderedDict
 from collections.abc import Callable
 
-_REF = re.compile(r"\$\{([^}]*)\}")
+# Only two brace forms expand: ${name} and ${name:-default}. The name runs up to
+# the first ":" or "}" (so ":?", ":+", ":=", "::", a bare ":", or any colon that
+# is not part of ":-" makes the whole ${...} fail to match -- it is then left as
+# literal text, and a well-formed reference later in the string still expands).
+# The name may contain "$" and "{", so an unclosed "${a:" leaves its text alone
+# while a following "${B}" expands.
+_REF = re.compile(r"\$\{([^}:]*)(?::-([^}]*))?\}")
 
 
 def expand(value: str, lookup: Callable[[str], tuple[bool, str | None]]) -> str:
@@ -28,20 +34,8 @@ def expand(value: str, lookup: Callable[[str], tuple[bool, str | None]]) -> str:
     """
 
     def repl(match: re.Match) -> str:
-        inner = match.group(1)
-        # Only two forms expand: ${name} (no colon) and ${name:-default} (the
-        # first colon immediately followed by "-"). Any other colon form -- :?,
-        # :+, :=, ::, a bare trailing ":", or a colon elsewhere in the braces --
-        # is left as literal text.
-        colon = inner.find(":")
-        if colon == -1:
-            name = inner
-            default = None
-        elif inner[colon : colon + 2] == ":-":
-            name = inner[:colon]
-            default = inner[colon + 2 :]
-        else:
-            return match.group(0)
+        name = match.group(1)
+        default = match.group(2)  # None when there is no ":-" clause
         found, resolved = lookup(name)
         if found:
             return resolved if resolved is not None else ""

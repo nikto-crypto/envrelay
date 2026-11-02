@@ -172,3 +172,34 @@ Fix: add that exact `help=` string to the magic's `dotenv_path` argument
 (`src/envrelay/_magic.py`); nothing else changed. Added a differential test
 comparing the magic's docstring (not the `File:` line) via `scripts/magic_doc.py`
 and `tests/differential/test_magic.py::test_magic_docstring_help`.
+
+## Fix round 3 (external evaluation)
+
+A 30,000-case adversarial fuzz against python-dotenv 1.2.4 found three
+divergences; each was confirmed against the oracle through the wrappers,
+generalized by probing smaller inputs, covered by new grammar classes, and fixed
+(no special-casing).
+
+1. **Whitespace class.** 1.2.4 treats every `str.isspace()` character as
+   whitespace wherever whitespace is allowed (leading, around `=`, after `=`,
+   trailing, before `#`); only `\r`/`\n` are line terminators (from a stream),
+   and reading from a path additionally folds `\r\n`/`\r` to `\n`. Probing showed
+   that \x1c-\x1f, \x85,  ,  , NBSP, 　, \x0b, \x0c, and the Unicode
+   spaces are all horizontal whitespace, never statement separators. Fix:
+   `_parsing._H` is now `[^\S\r\n]` and the hand loops use `_skip_hws` /
+   `str.strip()` (whitespace minus line terminators).
+2. **Empty single-quoted key.** `''=x` and `''` are parse errors. Fix: the key
+   pattern's single-quoted branch is `'[^']+'` (non-empty); an empty `''` falls
+   through to the bare branch, which forbids a leading `'`, so it is a parse
+   error. `""`, `' '`, `'  '` remain valid keys.
+3. **Unclosed `${name:` before a later reference.** `A=${a:x${B}` (with B set)
+   gives `${a:xbee`: the unclosed `${a:` stays literal and the later `${B}`
+   expands. Fix: the interpolation regex is
+   `\$\{([^}:]*)(?::-([^}]*))?\}` — the name runs to the first `:` or `}`, so any
+   colon form other than `:-` fails to match and a well-formed reference later in
+   the string still expands.
+
+Harness: the grammar now injects every whitespace character (and a couple of
+control characters) in every position, through streams and files, every reader,
+the CLI, and per-key edits; adds empty and quoted-empty keys; and adds malformed
+brace forms followed by valid references. Coverage matrix updated.

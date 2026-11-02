@@ -54,8 +54,10 @@ class ScanResult(NamedTuple):
 
 
 # --- character classes -------------------------------------------------------
-# Horizontal whitespace that may pad tokens. Newlines are handled separately.
-_H = r"[ \t]"
+# Horizontal whitespace that may pad tokens: every character Python considers
+# whitespace except the line terminators the parser splits on (\r and \n). This
+# includes \t, \f, \v, \x1c-\x1f, \x85, NBSP, the Unicode spaces, etc.
+_H = r"[^\S\r\n]"
 # A line terminator: CRLF first so it is taken as a single break.
 _TERM = re.compile(r"\r\n|\r|\n")
 # Counts universal line breaks in a chunk of text.
@@ -68,12 +70,13 @@ _BLANK_LINE = re.compile(_H + r"*(?:\r\n|\r|\n)")
 _COMMENT_LINE = re.compile(_H + r"*#[^\r\n]*(?:\r\n|\r|\n)")
 _TRAILING_BLANK = re.compile(_H + r"*(?:#[^\r\n]*)?\Z")
 
-# A key: either a complete single-quoted run (quotes stripped), or a bare run
-# whose first character is not whitespace/"="/"#"/"'" and whose remaining
-# characters are not whitespace/"="/"#". So a "'" only starts a quoted key (which
-# must be terminated, else it is a parse error), but a "'" later in a bare key is
-# an ordinary character, and a double-quoted key keeps its quotes.
-_KEY = re.compile(r"'[^']*'|[^\s=#'][^\s=#]*")
+# A key: either a complete, NON-EMPTY single-quoted run (quotes stripped; an
+# empty '' is a parse error), or a bare run whose first character is not
+# whitespace/"="/"#"/"'" and whose remaining characters are not whitespace/"="/
+# "#". So a "'" only starts a quoted key (which must be non-empty and terminated,
+# else it is a parse error), but a "'" later in a bare key is an ordinary
+# character, and a double-quoted key keeps its quotes.
+_KEY = re.compile(r"'[^']+'|[^\s=#'][^\s=#]*")
 # The optional ``export`` keyword, only when followed by whitespace.
 _EXPORT = re.compile(r"export" + _H + r"+")
 
@@ -122,6 +125,18 @@ def _count_breaks(text: str) -> int:
     return len(_BREAKS.findall(text))
 
 
+def _skip_hws(text: str, i: int) -> int:
+    """Advance past horizontal whitespace (any whitespace except \\r and \\n)."""
+    n = len(text)
+    while i < n and text[i].isspace() and text[i] not in "\r\n":
+        i += 1
+    return i
+
+
+# Matches horizontal whitespace immediately before a "#" comment on a line.
+_WS_HASH = re.compile(r"[^\S\r\n]#")
+
+
 def normalize_newlines(text: str) -> str:
     """Collapse CRLF and lone CR to LF.
 
@@ -157,10 +172,8 @@ def _match_value(text: str, i: int):
     unquoted values). Returns ``None`` on an unterminated quote.
     """
     n = len(text)
-    # Look past spaces/tabs to decide whether a quoted value follows.
-    j = i
-    while j < n and text[j] in " \t":
-        j += 1
+    # Look past horizontal whitespace to decide whether a quoted value follows.
+    j = _skip_hws(text, i)
     if j < n and text[j] == "'":
         m = _SINGLE.match(text, j)
         if not m:
@@ -179,10 +192,10 @@ def _match_value(text: str, i: int):
     while k < n and text[k] not in "\r\n":
         k += 1
     raw = text[i:k]
-    cm = re.search(r"[ \t]#", raw)
+    cm = _WS_HASH.search(raw)
     if cm:
         raw = raw[: cm.start()]
-    return raw.strip(" \t"), k
+    return raw.strip(), k
 
 
 def _try_binding(text: str, start: int):
@@ -193,10 +206,8 @@ def _try_binding(text: str, start: int):
     valid binding.
     """
     n = len(text)
-    i = start
     # leading horizontal whitespace
-    while i < n and text[i] in " \t":
-        i += 1
+    i = _skip_hws(text, start)
     # optional export prefix (only as a standalone keyword + whitespace)
     em = _EXPORT.match(text, i)
     if em:
@@ -220,8 +231,7 @@ def _try_binding(text: str, start: int):
     else:
         key = raw_key
     # padding after key
-    while i < n and text[i] in " \t":
-        i += 1
+    i = _skip_hws(text, i)
     # end of line, or comment -> bare key with no value
     if i >= n or text[i] in "\r\n":
         return _finish(text, key, None, i)
@@ -239,8 +249,7 @@ def _try_binding(text: str, start: int):
         return _ERROR, value_start
     value, i = parsed
     # trailing padding + optional comment, then must reach end of line
-    while i < n and text[i] in " \t":
-        i += 1
+    i = _skip_hws(text, i)
     if i < n and text[i] == "#":
         while i < n and text[i] not in "\r\n":
             i += 1

@@ -113,6 +113,21 @@ New input classes now covered (see PROVENANCE.md / CHANGELOG.md):
   blank-line-separated sections, and commented-out keys — read by every reader,
   listed by the CLI, and per-key edited (`test_configs.py`).
 
+## Added by Fix round 3 (external evaluation)
+
+New input classes now covered (see PROVENANCE.md / CHANGELOG.md):
+
+- **All `str.isspace()` characters as whitespace** (channels 1–4, 7): the grammar
+  injects every whitespace character (space, tab, `\f`, `\v`, `\x1c`–`\x1f`,
+  `\x85`, NBSP, ` `/` `, Unicode spaces) in every position — leading, around
+  `=`, after `=`, trailing, before `#`, inside export — through streams and files,
+  every reader, the CLI, and per-key edits.
+- **Empty and quoted-empty keys** (channels 1, 4): `''`, `""`, `' '`, `export ''=x`
+  in documents and as edit targets.
+- **Malformed / unclosed brace forms followed by a valid reference** (channels
+  1–3): `${a:x${B}`, `${a${B}`, `${${B}}`, `${a:${B}}`, `${a:-x${B}}`, `${a}x${B}`,
+  added to the interpolation grammar (readers and CLI).
+
 ## Generated-case counts (final evidence run)
 
 See PROVENANCE.md and the README for the exact figures produced by the final

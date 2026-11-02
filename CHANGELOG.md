@@ -6,6 +6,20 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed (Fix round 3 — from an external evaluation)
+
+A 30,000-case adversarial fuzz against python-dotenv 1.2.4 surfaced three
+divergences; all are now matched, with the whole input class covered:
+
+- Every character Python considers whitespace (not just space/tab) is treated as
+  whitespace wherever whitespace is allowed — around keys, around `=`, before and
+  after values, and before `#` comments. Only `\r`/`\n` are line terminators.
+- An empty single-quoted key (`''`) is a parse error (logs the warning, yields
+  nothing), as in 1.2.4.
+- `${...}` expansion matches only `${name}` and `${name:-default}` (name up to the
+  first `:` or `}`), so an unclosed `${a:` leaves its own text literal while a
+  later well-formed `${B}` still expands.
+
 ### Fixed (Fix round 2 — from an external review)
 
 - The IPython `%dotenv` magic's docstring help now lists the `dotenv_path`

@@ -89,9 +89,7 @@ def test_magic_differential():
 def _docstring(ext):
     env = dict(os.environ)
     env.pop("PYTHONPATH", None)
-    proc = subprocess.run(
-        [PY, DOC_PROBE, ext], env=env, capture_output=True, text=True
-    )
+    proc = subprocess.run([PY, DOC_PROBE, ext], env=env, capture_output=True, text=True)
     for line in proc.stdout.splitlines():
         if line.startswith("{"):
             return json.loads(line)
