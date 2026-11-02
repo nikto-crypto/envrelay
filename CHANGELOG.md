@@ -6,6 +6,24 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The `cli` extra now requires `click>=8.5` with no upper bound (was
+  `click>=8.0,<9.0`). The CLI is developed and differentially tested against
+  click 8.5.0; see the README.
+
+### Fixed (Fix round 4 — from an external evaluation)
+
+- An empty (or otherwise falsy) `dotenv_path` is no longer treated as "no path":
+  only `None` triggers the upward search. `dotenv_values("")` returns `{}` and
+  `load_dotenv("")` returns `False` and loads nothing, so
+  `load_dotenv(os.getenv("ENV_FILE", ""))` cannot load an unintended file.
+- `find_dotenv` (and a bare `load_dotenv()`) now accepts a FIFO (and any
+  non-directory that exists) for the located file, matching 1.2.4.
+- `set_key` accepts non-string keys: `set_key(p, None, "v")` writes `None='v'`
+  and returns `(True, None, 'v')` (a non-string value still raises under a
+  quoting mode, as before).
+
 ### Fixed (Fix round 3 — from an external evaluation)
 
 A 30,000-case adversarial fuzz against python-dotenv 1.2.4 surfaced three

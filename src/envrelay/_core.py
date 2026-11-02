@@ -75,7 +75,10 @@ def dotenv_values(
     ``None``. With ``interpolate`` on, ``${...}`` references are expanded against
     earlier values and then ``os.environ``.
     """
-    if not dotenv_path and stream is None:
+    # Only a missing path (None) triggers a search; an empty or other falsy
+    # path is used as given (and found to not exist), so it never loads an
+    # unintended file.
+    if dotenv_path is None and stream is None:
         dotenv_path = find_dotenv()
     collected = _collect(dotenv_path, stream, verbose, encoding)
     if collected is None:
@@ -124,7 +127,10 @@ def load_into_environ(
     Shared by ``load_dotenv`` and the command line's ``run``, which ignores
     ``PYTHON_DOTENV_DISABLED``.
     """
-    if not dotenv_path and stream is None:
+    # Only a missing path (None) triggers a search; an empty or other falsy
+    # path is used as given (and found to not exist), so it never loads an
+    # unintended file.
+    if dotenv_path is None and stream is None:
         dotenv_path = find_dotenv()
     collected = _collect(dotenv_path, stream, verbose, encoding)
     if collected is None:
@@ -231,7 +237,9 @@ def find_dotenv(filename=".env", raise_error_if_not_found=False, usecwd=False):
 
     for directory in _ascend(start):
         candidate = os.path.join(directory, filename)
-        if os.path.isfile(candidate):
+        # Accept anything that exists and is not a directory -- a regular file, a
+        # FIFO, or a symlink resolving to one -- matching what the readers accept.
+        if os.path.exists(candidate) and not os.path.isdir(candidate):
             return candidate
 
     if raise_error_if_not_found:

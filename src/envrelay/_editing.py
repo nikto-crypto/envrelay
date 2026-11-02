@@ -124,7 +124,10 @@ def set_key(
     line is appended. The whole file is rewritten with LF endings.
     """
     formatted = _format_value(value_to_set, quote_mode)
-    new_line = ("export " if export else "") + key_to_set + "=" + formatted + "\n"
+    # str-format the key and the formatted value, so a non-string key (None, an
+    # int, ...) is written as its str() and returned unchanged, as the reference
+    # does. A non-string value under a quoting mode still raises in _format_value.
+    new_line = "%s%s=%s\n" % ("export " if export else "", key_to_set, formatted)
 
     write_path = os.path.realpath(dotenv_path) if follow_symlinks else dotenv_path
     content = _read_existing(dotenv_path, encoding)

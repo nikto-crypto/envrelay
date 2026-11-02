@@ -203,3 +203,33 @@ Harness: the grammar now injects every whitespace character (and a couple of
 control characters) in every position, through streams and files, every reader,
 the CLI, and per-key edits; adds empty and quoted-empty keys; and adds malformed
 brace forms followed by valid references. Coverage matrix updated.
+
+## Fix round 4 (external evaluation)
+
+An independent evaluation found four divergences; each confirmed against the
+oracle through the wrappers, generalized, covered, and fixed (no special-casing).
+
+1. **Empty path is not "no path".** The upward search runs only when
+   `dotenv_path is None` (and no stream). Any other falsy path (`""`, `0`,
+   `False`) is used as given, so `dotenv_values("")` -> `{}` and
+   `load_dotenv("")` -> `False`, never loading an unintended file. Fix: both call
+   sites in `_core` use `dotenv_path is None` instead of `not dotenv_path`.
+2. **`find_dotenv` accepts a FIFO.** The search returns any candidate that
+   exists and is not a directory (regular file, FIFO, or symlink to one) --
+   probing showed directories, symlinks-to-directories, and broken symlinks are
+   rejected. Fix: `find_dotenv` uses `os.path.exists(c) and not os.path.isdir(c)`
+   instead of `os.path.isfile(c)` (the same rule the readers use).
+3. **Non-string keys in `set_key`.** A non-string key is written as its `str()`
+   and returned unchanged (`set_key(p, None, "v")` -> `None='v'`,
+   `(True, None, 'v')`). Fix: the new line is built with `%s` formatting; a
+   non-string value still raises in `_format_value` under a quoting mode, matching
+   the reference. `get_key`/`unset_key` already matched (they return `None`/the
+   key and log the not-found warning).
+4. **`cli` extra pinned `click<9`.** Upper bound removed; floor set to the tested
+   `click>=8.5` and documented in the README.
+
+Harness: the root-level "no `.env` above the temp root" assertion is kept; a new
+`tests/differential/test_paths.py` (with `scripts/path_probe.py`) deliberately
+places a `.env` (regular file, FIFO, or directory) in parent folders *inside* the
+case dir and calls the path-taking functions with empty, None, and relative paths
+from scripts at depths 1-3 below them. Coverage matrix updated.

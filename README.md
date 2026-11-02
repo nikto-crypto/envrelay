@@ -44,6 +44,11 @@ envrelay run -- mycommand     # run a command with the .env loaded
 
 `python -m envrelay` behaves identically to the `envrelay` console script.
 
+The `cli` extra requires **click >= 8.5**, with no upper bound. The command line
+is developed against, and its differential suite is run against, click 8.5.0 (the
+version the reference's CLI also runs with); click's exact help-text wrapping is
+version-dependent, so the byte-for-byte differential checks assume that version.
+
 ## IPython magic
 
 ```text

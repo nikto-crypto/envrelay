@@ -128,6 +128,19 @@ New input classes now covered (see PROVENANCE.md / CHANGELOG.md):
   1–3): `${a:x${B}`, `${a${B}`, `${${B}}`, `${a:${B}}`, `${a:-x${B}}`, `${a}x${B}`,
   added to the interpolation grammar (readers and CLI).
 
+## Added by Fix round 4 (external evaluation)
+
+- **Path resolution with `.env` in parent folders inside the case dir**
+  (channels 2, 5): `tests/differential/test_paths.py` places a `.env` (regular
+  file, FIFO, or directory) at a parent and runs `find_dotenv` /
+  `dotenv_values` / `load_dotenv` / `get_key` with empty, None, and relative
+  paths from scripts at depths 1-3. Confirms empty/falsy paths never search or
+  load, None searches, and the search accepts files and FIFOs but not
+  directories. The root-level "no `.env` above the temp root" assertion is kept.
+- **Non-string keys/values in `set_key`/`get_key`/`unset_key`** (channels 4, 10):
+  None/int keys and values, in `tests/differential/test_misuse.py` and the
+  round-4 probes.
+
 ## Generated-case counts (final evidence run)
 
 See PROVENANCE.md and the README for the exact figures produced by the final

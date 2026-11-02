@@ -50,6 +50,18 @@ Per-channel differential result: zero mismatches on every channel (1–10) over
 the covered input space (grammar-generated plus hand-written). This is strong
 evidence, not a proof over all inputs — see Fix round 1 below.
 
+## Fix round 4 (external evaluation)
+
+Four divergences fixed and covered (see PROVENANCE.md / CHANGELOG.md): an empty
+path no longer triggers a search (only `None` does), so `load_dotenv("")` loads
+nothing; `find_dotenv` accepts a FIFO (exists and not a directory); `set_key`
+accepts non-string keys (`set_key(p, None, "v")` -> `None='v'`); and the `cli`
+extra drops its `click<9` upper bound (floor `click>=8.5`, noted in the README).
+New `tests/differential/test_paths.py` places `.env` (file/FIFO/dir) in parent
+folders inside the case dir and calls the path functions with empty/None/relative
+paths from scripts at depth; the root "no `.env` above the temp root" assertion is
+kept. Full suite: 460 passed, 0 skipped.
+
 ## Fix round 3 (external evaluation)
 
 A 30,000-case adversarial fuzz found three divergences, all fixed and covered
