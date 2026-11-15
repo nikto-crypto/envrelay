@@ -1,5 +1,5 @@
 # Development dependencies (the core library has none)
-click==8.5.0
+click==8.5.1
 ipython
 pytest
 hypothesis
